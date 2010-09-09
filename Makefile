@@ -11,7 +11,7 @@ DIR_DEFAULT = $(DIR_ETC)/default
 DIR_INIT = $(DIR_ETC)/init.d
 MODULES=des-lsr des-lsr_packethandler des-lsr_routinglogic
 UNAME = $(shell uname | tr 'a-z' 'A-Z')
-TARFILES = *.c *.h Makefile *.conf *.init *.default ChangeLog TODO *.lua
+TARFILES = *.c *.h Makefile *.conf *.init *.default ChangeLog TODO
 
 FILE_DEFAULT = ./$(DAEMONNAME).default
 FILE_ETC = ./$(DAEMONNAME).conf
