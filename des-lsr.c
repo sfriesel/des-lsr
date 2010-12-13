@@ -15,8 +15,8 @@ int main (int argc, char** argv) {
 			return EXIT_FAILURE;
 		}
 	} else {
-		dessert_init("lsr", 0x01, DESSERT_OPT_DAEMONIZE);
 		cfg = dessert_cli_get_cfg(argc, argv);
+		dessert_init("lsr", 0x01, DESSERT_OPT_DAEMONIZE);
 	}
 	dessert_info("logging set");
 
