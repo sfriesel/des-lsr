@@ -1,6 +1,7 @@
 #include <dessert.h>
 #include <dessert-extra.h>
 #include <libcli.h>
+#include <linux/if_ether.h>
 
 //////////////// CONSTANTS
 #define LSR_EXT_HELLO DESSERT_EXT_USER
