@@ -5,14 +5,14 @@
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:
 # Default-Stop:      0 1 6
-# Short-Description: Start Link State Routing (LSR) daemon
-# Description:       Start a daemon running the Link State Routing (LSR) protocol.
+# Short-Description: Start des-aodv daemon
+# Description:       Start des-aodv daemon
 ### END INIT INFO
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 NAME=des-lsr
 DAEMON=/usr/sbin/$NAME
-DESC="Link State Routing (LSR) Daemon"
+DESC="$NAME, a daemon based on libdessert"
 
 test -x $DAEMON || exit 0
 
@@ -37,7 +37,7 @@ build_conf()
     echo "! File automatically created by $NAME init script." > /tmp/$NAME.cli
     echo "! Use /etc/$NAME.conf and /etc/default/$NAME for configuration." >> /tmp/$NAME.cli
     echo "! Your changes to this file will be overwritten!!!" >> /tmp/$NAME.cli
-	echo "logging file $LOGFILE" >> /tmp/$NAME.cli
+    echo "logging file $LOGFILE" >> /tmp/$NAME.cli
     cat $DAEMON_OPTS >> /tmp/$NAME.cli
     echo "pid $PIDFILE" >> /tmp/$NAME.cli
     echo "interface sys $TAP_NAME $TAP_IP $TAP_NETMASK" >> /tmp/$NAME.cli

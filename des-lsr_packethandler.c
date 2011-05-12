@@ -1,7 +1,7 @@
 #include "des-lsr.h"
 #include "des-lsr_items.h"
 
-int sys_to_mesh(dessert_msg_t *msg, size_t len, dessert_msg_proc_t *proc, dessert_sysif_t *sysif, dessert_frameid_t id){
+int sys_to_mesh(dessert_msg_t *msg, size_t len, dessert_msg_proc_t *proc, dessert_sysif_t *sysif, dessert_frameid_t id) {
 	struct ether_header* l25h = dessert_msg_getl25ether(msg);			// ptr to l2.5 header
 	all_nodes_t* node;
 	HASH_FIND(hh, all_nodes_head, l25h->ether_dhost, ETH_ALEN, node);	// finding destination of msg in hashmap
@@ -15,10 +15,12 @@ int sys_to_mesh(dessert_msg_t *msg, size_t len, dessert_msg_proc_t *proc, desser
     return DESSERT_MSG_DROP;
 }
 
-int mesh_to_sys(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id){
+int mesh_to_sys(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id) {
 	if((proc->lflags & DESSERT_LFLAG_DST_SELF && !(proc->lflags & DESSERT_LFLAG_DST_SELF_OVERHEARD))
 			||	proc->lflags & DESSERT_LFLAG_DST_BROADCAST
-			|| proc->lflags & DESSERT_LFLAG_DST_MULTICAST )
+			|| proc->lflags & DESSERT_LFLAG_DST_MULTICAST ) {
 		dessert_syssend_msg(msg);
+	}
+
 	return DESSERT_MSG_DROP;
 }
