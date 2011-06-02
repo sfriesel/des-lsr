@@ -18,7 +18,7 @@ int main (int argc, char** argv) {
 	} else {
 		dessert_info("starting LSR in daemonize mode");
 		cfg = dessert_cli_get_cfg(argc, argv);
-		dessert_init("LSR", 0x03, DESSERT_OPT_DAEMONIZE);
+		dessert_init("LSR", 0x03, DESSERT_OPT_NODAEMONIZE);
 	}
 
 	/* periodic function initialization */

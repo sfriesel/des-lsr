@@ -1,20 +1,26 @@
 #include "des-lsr.h"
 #include "des-lsr_items.h"
+#include <pthread.h>
+#include <string.h>
 
-node_neighbors* dir_neighbors_head 	= NULL;
-all_nodes_t* all_nodes_head 			= NULL;
+node_neighbors_t* node_neighbors_head	= NULL;
+all_nodes_t* all_nodes_head			= NULL;
 
-u_int16_t hello_interval 				= HELLO_INTERVAL;
-u_int16_t tc_interval 					= TC_INTERVAL;
-u_int16_t nh_refresh_interval 			= NH_REFRESH_INTERVAL;
-u_int16_t rt_refresh_interval 			= RT_REFRESH_INTERVAL;
-u_int16_t nh_entry_age 					= NH_ENTRY_AGE;
-u_int16_t rt_entry_age 					= RT_ENTRY_AGE;
+u_int16_t hello_interval 		= HELLO_INTERVAL;
+u_int16_t tc_interval 			= TC_INTERVAL;
+u_int16_t nh_refresh_interval 	= NH_REFRESH_INTERVAL;
+u_int16_t rt_refresh_interval 	= RT_REFRESH_INTERVAL;
+u_int16_t nh_entry_age 			= NH_ENTRY_AGE;
+u_int16_t rt_entry_age 			= RT_ENTRY_AGE;
 
 dessert_periodic_t* periodic_send_hello;
 dessert_periodic_t* periodic_send_tc;
 dessert_periodic_t* periodic_refresh_nh;
 dessert_periodic_t* periodic_refresh_rt;
+
+u_int16_t tc_seq_nr = 0;
+
+pthread_rwlock_t pp_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
 void init_logic() {
 	// registering periodic for HELLO packets
@@ -43,42 +49,86 @@ void init_logic() {
 }
 
 // --- PERIODIC PIPELINE --- //
-u_int16_t hello_seq_nr = 0;
-u_int16_t tc_seq_nr = 0;
-
 int send_hello(void *data, struct timeval *scheduled, struct timeval *interval) {
 	dessert_msg_t *hello;
 	dessert_msg_new(&hello);
-	hello->ttl = 1;							// hello only for direct neighbors
-
+	hello->ttl = 1;
 	dessert_ext_t *ext = NULL;
 	dessert_msg_addext(hello, &ext, LSR_EXT_HELLO, sizeof(hello_ext_t));
-	hello_ext_t* hello_ext_data = (hello_ext_t*) ext->data;
-	hello_ext_data->seq_nr = hello_seq_nr++;
-
-	dessert_meshsend_fast(hello, NULL);		// send without creating copy
-	dessert_msg_destroy(hello);				// we have created msg, we have to destroy it
-	dessert_info("HELLO packet sent");
+	dessert_msg_addext(hello, &ext, DESSERT_EXT_ETH, ETHER_HDR_LEN);
+	struct ether_header* l25h = (struct ether_header*) ext->data;
+	memcpy(l25h->ether_shost, dessert_l25_defsrc, ETH_ALEN);
+	memcpy(l25h->ether_dhost, ether_broadcast, ETH_ALEN);
+	dessert_meshsend_fast(hello, NULL);	 // send without creating copy
+	dessert_msg_destroy(hello);          // we have created msg, we have to destroy it
 	return 0;
 }
 
+int process_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id) {
+	dessert_ext_t *ext;
+
+	if(dessert_msg_getext(msg, &ext, LSR_EXT_HELLO, 0)) {
+		pthread_rwlock_wrlock(&pp_rwlock);
+		struct ether_header* l25h = dessert_msg_getl25ether(msg);
+		node_neighbors_t *neighbor = malloc(sizeof(node_neighbors_t));
+		HASH_FIND(hh, node_neighbors_head, l25h->ether_shost, ETH_ALEN, neighbor);
+		if (neighbor) {
+			neighbor->entry_age = NH_ENTRY_AGE;
+		} else {
+			neighbor = malloc(sizeof(node_neighbors_t));
+			memcpy(neighbor->addr, l25h->ether_shost, ETH_ALEN);
+			neighbor->entry_age = NH_ENTRY_AGE;
+			neighbor->weight = 1;
+			HASH_ADD_KEYPTR(hh, node_neighbors_head, neighbor->addr, ETH_ALEN, neighbor);
+		}
+		pthread_rwlock_unlock(&pp_rwlock);
+		return DESSERT_MSG_DROP;
+	}
+
+	return DESSERT_MSG_KEEP;
+}
+
 int send_tc(void *data, struct timeval *scheduled, struct timeval *interval) {
-	node_neighbors *neighbor = dir_neighbors_head;
-	if (!neighbor) {
+	pthread_rwlock_wrlock(&pp_rwlock);
+	if (HASH_COUNT(node_neighbors_head) == 0) {
 		return 0;
 	}
 
 	dessert_msg_t *tc;
 	dessert_msg_new(&tc);
 	tc->ttl = TTL_MAX;
+	tc->u8 = ++tc_seq_nr;
+
+	// delete old entries from NH list
+	node_neighbors_t *dir_neigh = node_neighbors_head;
+	while (dir_neigh) {
+		if (dir_neigh->entry_age-- == 0) {
+			node_neighbors_t* el_to_delete = dir_neigh;
+			HASH_DEL(node_neighbors_head, el_to_delete);
+			free(el_to_delete);
+		}
+		dir_neigh = dir_neigh->hh.next;
+	}
 
 	// add TC extension
 	dessert_ext_t *ext;
-	dessert_msg_addext(tc, &ext, LSR_EXT_TC, sizeof(tc_ext_t));
-	tc_ext_t* tc_ext_data = (tc_ext_t*) ext->data;
-	tc_ext_data->seq_nr = tc_seq_nr++;
-	tc_ext_data->neighbors = malloc(sizeof(dir_neighbors_head));
-	memcpy(tc_ext_data->neighbors, dir_neighbors_head, sizeof(dir_neighbors_head));
+	u_int8_t ext_size = 1 + ((sizeof(node_neighbors_t)- sizeof(node_neighbors_head->hh)) * HASH_COUNT(node_neighbors_head));
+	dessert_msg_addext(tc, &ext, LSR_EXT_TC, ext_size);
+	void* tc_ext = ext->data;
+	memcpy(tc_ext, &(ext_size), 1);
+	tc_ext++;
+
+	// copy NH list into extension
+	dir_neigh = node_neighbors_head;
+	while (dir_neigh) {
+		memcpy(tc_ext, dir_neigh->addr, ETH_ALEN);
+		tc_ext += ETH_ALEN;
+		memcpy(tc_ext, &(dir_neigh->entry_age), 1);
+		tc_ext++;
+		memcpy(tc_ext, &(dir_neigh->weight), 1);
+		tc_ext++;
+		dir_neigh = dir_neigh->hh.next;
+	}
 
 	// add l2.5 header
 	dessert_msg_addext(tc, &ext, DESSERT_EXT_ETH, ETHER_HDR_LEN);
@@ -88,193 +138,125 @@ int send_tc(void *data, struct timeval *scheduled, struct timeval *interval) {
 
 	dessert_meshsend_fast(tc, NULL);
 	dessert_msg_destroy(tc);
-	dessert_info("TC packet sent");
+	pthread_rwlock_unlock(&pp_rwlock);
 	return 0;
 }
 
-int refresh_list(void *data, struct timeval *scheduled, struct timeval *interval) {
-	dessert_meshif_t *iface;
-	struct d_int avg_val;
-	node_neighbors *dir_neigh = dir_neighbors_head;
+int process_tc(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id) {
+	dessert_ext_t *ext;
 
-	while (dir_neigh) {
-		if (dir_neigh->entry_age-- == 0) {
-			node_neighbors* el_to_delete = dir_neigh;
-			dir_neigh = dir_neigh->hh.next;
-			HASH_DEL(dir_neighbors_head, el_to_delete);
-		} else {
-			// MESHIFLIST_ITERATOR_START(iface)
-				if (!dessert_search_con(dir_neigh->addr, "wlan0", &avg_val)) {
-					dir_neigh->rssi = avg_val.value;
-				} else {
-					node_neighbors* el_to_delete = dir_neigh;
-					dir_neigh = dir_neigh->hh.next;
-					HASH_DEL(dir_neighbors_head, el_to_delete);
-				}
-			// MESHIFLIST_ITERATOR_STOP;
+	if(dessert_msg_getext(msg, &ext, LSR_EXT_TC, 0)){
+		pthread_rwlock_wrlock(&pp_rwlock);
+		all_nodes_t *node = malloc(sizeof(all_nodes_t));
+		node_neighbors_t *neighbor = malloc(sizeof(node_neighbors_t));
+		struct ether_header* l25h = dessert_msg_getl25ether(msg);
+		void* tc_ext = (void*) ext->data;
+		u_int8_t ext_size;
+		u_int8_t addr[ETH_ALEN];
+		u_int8_t entry_age;
+		u_int8_t weight;
 
-			dessert_info("neighbor found: %02x:%02x:%02x:%02x:%02x:%02x | %u",
-				dir_neigh->addr[0], dir_neigh->addr[1], dir_neigh->addr[2],
-				dir_neigh->addr[3], dir_neigh->addr[4], dir_neigh->addr[5],
-				dir_neigh->entry_age);
-			dir_neigh = dir_neigh->hh.next;
+		// if node is not in RT, add the node
+		HASH_FIND(hh, all_nodes_head, l25h->ether_shost, ETH_ALEN, node);
+		if (!node) {
+			dessert_info("NODE NOT IN RT");
+			node = malloc(sizeof(all_nodes_t));
+			memcpy(node->addr, l25h->ether_shost, ETH_ALEN);
+			node->entry_age = RT_ENTRY_AGE;
+			node->seq_nr = msg->u8;
+			HASH_ADD_KEYPTR(hh, all_nodes_head, node->addr, ETH_ALEN, node);
 		}
+
+		// add NH to RT
+		memcpy(&ext_size, tc_ext, 1);
+		tc_ext++;
+		while (ext_size-1 > 0) {
+			memcpy(addr, tc_ext, ETH_ALEN);
+			ext_size -= ETH_ALEN;
+			tc_ext += ETH_ALEN;
+			memcpy(&entry_age, tc_ext, 1);
+			ext_size--;
+			tc_ext++;
+			memcpy(&weight, tc_ext, 1);
+			ext_size--;
+			tc_ext++;
+			HASH_FIND(hh, all_nodes_head, l25h->ether_shost, ETH_ALEN, node);
+			if (node->seq_nr >= msg->u8) {
+				return DESSERT_MSG_DROP;
+			}
+			node->entry_age = RT_ENTRY_AGE;
+			node->seq_nr = msg->u8;
+			HASH_FIND(hh, node->neighbors, addr, ETH_ALEN, neighbor);
+			if (neighbor) {
+				neighbor->entry_age = entry_age;
+				neighbor->weight = weight;
+			} else {
+				neighbor = malloc(sizeof(node_neighbors_t));
+				memcpy(neighbor->addr, addr, ETH_ALEN);
+				neighbor->entry_age = entry_age;
+				neighbor->weight = weight;
+				HASH_ADD_KEYPTR(hh, node->neighbors, neighbor->addr, ETH_ALEN, neighbor);
+			}
+		}
+
+		dessert_meshsend_fast_randomized(msg);	// resend TC packet
+		pthread_rwlock_unlock(&pp_rwlock);
+		return DESSERT_MSG_DROP;
 	}
 
+	return DESSERT_MSG_KEEP;
+}
+
+int refresh_list(void *data, struct timeval *scheduled, struct timeval *interval) {
+	pthread_rwlock_wrlock(&pp_rwlock);
+	node_neighbors_t *neighbor = node_neighbors_head;
+	while (neighbor) {
+		if (neighbor->entry_age-- == 0) {
+			node_neighbors_t* el_to_delete = neighbor;
+			HASH_DEL(node_neighbors_head, el_to_delete);
+			free(el_to_delete);
+		} else {
+			neighbor->weight = 1;
+		}
+		neighbor = neighbor->hh.next;
+	}
+	pthread_rwlock_unlock(&pp_rwlock);
 	return 0;
 }
 
 int refresh_rt(void *data, struct timeval *scheduled, struct timeval *interval) {
-	all_nodes_t *ptr = all_nodes_head;
-	all_nodes_t *node;
-	node_neighbors *neighbor_ptr;
+	pthread_rwlock_wrlock(&pp_rwlock);
+	all_nodes_t *node = all_nodes_head;
+	node_neighbors_t *neighbor;
 
-	while (ptr) {
-		// if entry is deprecated
-		if (ptr->entry_age-- == 0) {
-			all_nodes_t* el_to_delete = ptr;
-			ptr = ptr->hh.next;
-			free(el_to_delete->neighbors);
+	while (node) {
+		if (node->entry_age-- == 0) {
+			all_nodes_t* el_to_delete = node;
 			HASH_DEL(all_nodes_head, el_to_delete);
-			continue;
+			free(el_to_delete);
 		}
 
-		// if node is direct neighbor, they are next hops for themselves
-		node_neighbors *dir_neighbor;
-		HASH_FIND(hh, dir_neighbors_head, ptr->addr, ETH_ALEN, dir_neighbor);
-		if (dir_neighbor) {
-			memcpy(ptr->next_hop, ptr->addr, ETH_ALEN);
+		dessert_info("RT ENTRY %02x:%02x:%02x:%02x:%02x:%02x | Seqnr = %d | EntryAge = %d",
+			node->addr[0], node->addr[1], node->addr[2], node->addr[3],
+			node->addr[4], node->addr[5], node->seq_nr, node->entry_age);
+
+		neighbor = node->neighbors;
+		while (neighbor) {
+			dessert_info("\t\tRT ENTRY NH %02x:%02x:%02x:%02x:%02x:%02x | Weight = %d | EntryAge = %d",
+				neighbor->addr[0], neighbor->addr[1], neighbor->addr[2], neighbor->addr[3],
+				neighbor->addr[4], neighbor->addr[5], neighbor->weight, neighbor->entry_age);
+			neighbor = neighbor->hh.next;
 		}
-
-		// add next hop information for neighbors of current node
-		neighbor_ptr = ptr->neighbors;
-		while (neighbor_ptr) {
-			HASH_FIND(hh, all_nodes_head, neighbor_ptr->addr, ETH_ALEN, node);
-			if (node) {
-				// if neighbor is known, its next hop is ptr
-				memcpy(node->next_hop, ptr->addr, ETH_ALEN);
-			}
-			else {
-				// if neighbor is unknown, add it to known nodes and its next hop is ptr
-				node = malloc(sizeof(all_nodes_t));
-				memcpy(node->addr, neighbor_ptr->addr, ETH_ALEN);
-				memcpy(node->next_hop, ptr->addr, ETH_ALEN);
-				node->entry_age = RT_ENTRY_AGE;
-				node->neighbors = NULL;
-				HASH_ADD_KEYPTR(hh, all_nodes_head, node->addr, ETH_ALEN, node);
-			}
-
-			dessert_info("adding node to routing table: %02x:%02x:%02x:%02x:%02x:%02x",
-				neighbor_ptr->addr[0], neighbor_ptr->addr[1], neighbor_ptr->addr[2],
-				neighbor_ptr->addr[3], neighbor_ptr->addr[4], neighbor_ptr->addr[5]);
-
-			neighbor_ptr = neighbor_ptr->hh.next;
-		}
-
-		ptr = ptr->hh.next;
+		node = node->hh.next;
 	}
-
+	pthread_rwlock_unlock(&pp_rwlock);
 	return 0;
 }
 
 // --- CALLBACK PIPELINE --- //
 int drop_errors(dessert_msg_t* msg, size_t len,	dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id) {
 	if (proc->lflags & DESSERT_LFLAG_PREVHOP_SELF || proc->lflags & DESSERT_LFLAG_SRC_SELF) {
-		return DESSERT_MSG_DROP;
-	}
-
-	dessert_info("dropping packets sent to myself");
-	return DESSERT_MSG_KEEP;
-}
-
-int process_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id) {
-	dessert_ext_t *ext;
-
-	if(dessert_msg_getext(msg, &ext, LSR_EXT_HELLO, 0)) {
-		node_neighbors *neighbor;
-		HASH_FIND(hh, dir_neighbors_head, msg->l2h.ether_shost, ETH_ALEN, neighbor);
-
-		if (neighbor) {
-			neighbor->entry_age = NH_ENTRY_AGE;
-		}
-		else {
-			neighbor = malloc(sizeof(node_neighbors));
-			if (neighbor) {
-				memcpy(neighbor->addr, msg->l2h.ether_shost, ETH_ALEN);
-				neighbor->entry_age = NH_ENTRY_AGE;
-
-				// do no forward msg->l2h.ether_shost
-				// better: forward keypointer to struct element
-				// because msg can be deleted
- 				HASH_ADD_KEYPTR(hh, dir_neighbors_head, neighbor->addr, ETH_ALEN, neighbor);
-			}
-		}
-
-		dessert_info("receiving HELLO packet from %02x:%02x:%02x:%02x:%02x:%02x",
-			msg->l2h.ether_shost[0], msg->l2h.ether_shost[1], msg->l2h.ether_shost[2],
-			msg->l2h.ether_shost[3], msg->l2h.ether_shost[4], msg->l2h.ether_shost[5]);
-
-		neighbor = dir_neighbors_head;
-		while (neighbor) {
-			dessert_info("Neighbor %02x:%02x:%02x:%02x:%02x:%02x",
-				neighbor->addr[0], neighbor->addr[1], neighbor->addr[2],
-				neighbor->addr[3], neighbor->addr[4], neighbor->addr[5]);
-			neighbor = neighbor->hh.next;
-		}
-		return DESSERT_MSG_DROP;
-	}
-
-	return DESSERT_MSG_KEEP;
-}
-
-int process_tc(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id) {
-	dessert_ext_t *ext;
-	all_nodes_t *node;
-
-	if(dessert_msg_getext(msg, &ext, LSR_EXT_TC, 0)){
-		struct tc_ext* tc_ext = (struct tc_ext*) ext->data;
-		struct ether_header *l25h = dessert_msg_getl25ether(msg);
-		HASH_FIND(hh, all_nodes_head, l25h->ether_shost, ETH_ALEN, node);
-
-		if (node) {	// if found in struct for all nodes, delete its neighbors
-			if (node->seq_nr >= tc_ext->seq_nr){
-				return DESSERT_MSG_DROP;
-			}
-
-			node_neighbors* neighbor_el = node->neighbors;
-			while (neighbor_el) {
-				HASH_DEL(node->neighbors, neighbor_el);
-				neighbor_el = node->neighbors;
-			}
-		} else { 	// if not found in struct for all nodes, add it
-			node = malloc(sizeof(all_nodes_t));
-
-			if (node) {
-				memcpy(node->addr, l25h->ether_shost, ETH_ALEN);
-				memcpy(node->next_hop, ether_broadcast, ETH_ALEN);
-				node->neighbors = NULL;
-				HASH_ADD_KEYPTR(hh, all_nodes_head, node->addr, ETH_ALEN, node);
-			} else {
-				return DESSERT_MSG_DROP;
-			}
-		}
-
-		// add all neighbors of the node
-		node->neighbors = malloc(sizeof(tc_ext->neighbors));
-		node_neighbors *neighbor = tc_ext->neighbors;
-		while (neighbor) {
-			memcpy(node->neighbors->addr, neighbor->addr, ETH_ALEN);
-			node->neighbors->entry_age = neighbor->entry_age;
-			node->neighbors->rssi = neighbor->rssi;
-			HASH_ADD_KEYPTR(hh, node->neighbors, neighbor->addr, ETH_ALEN, neighbor);
-			neighbor = neighbor->hh.next;
-		}
-
-		node->entry_age = RT_ENTRY_AGE;
-
-		dessert_info("receiving TC packet from %02x:%02x:%02x:%02x:%02x:%02x",
-			msg->l2h.ether_shost[0], msg->l2h.ether_shost[1], msg->l2h.ether_shost[2],
-			msg->l2h.ether_shost[3], msg->l2h.ether_shost[4], msg->l2h.ether_shost[5]);
+		dessert_info("dropping packets sent to myself");
 		return DESSERT_MSG_DROP;
 	}
 

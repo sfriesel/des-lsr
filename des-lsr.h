@@ -3,6 +3,7 @@
 #include <libcli.h>
 
 //////////////// CONSTANTS
+#define LSR_INFINITY 				1000
 #define LSR_EXT_HELLO 				DESSERT_EXT_USER
 #define LSR_EXT_TC 					DESSERT_EXT_USER + 1
 
@@ -13,7 +14,7 @@
 #define RT_REFRESH_INTERVAL			5000 	// milliseconds
 #define NH_ENTRY_AGE				32
 #define RT_ENTRY_AGE				32
-#define TTL_MAX 					10
+#define TTL_MAX 					3
 
 //////////////// PERIODICS
 extern u_int16_t					hello_interval;
