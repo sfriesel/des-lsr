@@ -17,7 +17,7 @@ FILE_DEFAULT = ./$(DAEMONNAME).default
 FILE_ETC = ./$(DAEMONNAME).conf
 FILE_INIT = ./$(DAEMONNAME).init
 
-LIBS = dessert dessert-extra m
+LIBS = dessert  m
 CFLAGS += -ggdb -Wall -DTARGET_$(UNAME) -D_GNU_SOURCE -DVERSION_MAJOR=$(VERSION_MAJOR) -DVERSION_MINOR=$(VERSION_MINOR)
 LDFLAGS += $(addprefix -l,$(LIBS))
 
