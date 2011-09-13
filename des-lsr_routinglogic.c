@@ -49,22 +49,22 @@ void init_logic() {
 }
 
 // --- PERIODIC PIPELINE --- //
-int send_hello(void *data, struct timeval *scheduled, struct timeval *interval) {
+dessert_per_result_t send_hello(void *data, struct timeval *scheduled, struct timeval *interval) {
 	dessert_msg_t *hello;
 	dessert_msg_new(&hello);
 	hello->ttl = 1;
 	dessert_ext_t *ext = NULL;
-	dessert_msg_addext(hello, &ext, LSR_EXT_HELLO, sizeof(hello_ext_t));
+	dessert_msg_addext(hello, &ext, LSR_EXT_HELLO, 0);
 	dessert_msg_addext(hello, &ext, DESSERT_EXT_ETH, ETHER_HDR_LEN);
 	struct ether_header* l25h = (struct ether_header*) ext->data;
 	memcpy(l25h->ether_shost, dessert_l25_defsrc, ETH_ALEN);
 	memcpy(l25h->ether_dhost, ether_broadcast, ETH_ALEN);
 	dessert_meshsend_fast(hello, NULL);	 // send without creating copy
 	dessert_msg_destroy(hello);          // we have created msg, we have to destroy it
-	return 0;
+	return DESSERT_PER_KEEP;
 }
 
-int process_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id) {
+int process_hello(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
 	dessert_ext_t *ext;
 
 	if(dessert_msg_getext(msg, &ext, LSR_EXT_HELLO, 0)) {
@@ -88,7 +88,7 @@ int process_hello(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, cons
 	return DESSERT_MSG_KEEP;
 }
 
-int send_tc(void *data, struct timeval *scheduled, struct timeval *interval) {
+dessert_per_result_t send_tc(void *data, struct timeval *scheduled, struct timeval *interval) {
 	pthread_rwlock_wrlock(&pp_rwlock);
 	if (HASH_COUNT(node_neighbors_head) == 0) {
 		return 0;
@@ -112,9 +112,9 @@ int send_tc(void *data, struct timeval *scheduled, struct timeval *interval) {
 
 	// add TC extension
 	dessert_ext_t *ext;
-	u_int8_t ext_size = 1 + ((sizeof(node_neighbors_t)- sizeof(node_neighbors_head->hh)) * HASH_COUNT(node_neighbors_head));
+	uint8_t ext_size = 1 + ((sizeof(node_neighbors_t)- sizeof(node_neighbors_head->hh)) * HASH_COUNT(node_neighbors_head));
 	dessert_msg_addext(tc, &ext, LSR_EXT_TC, ext_size);
-	void* tc_ext = ext->data;
+	uint* tc_ext = ext->data;
 	memcpy(tc_ext, &(ext_size), 1);
 	tc_ext++;
 
@@ -142,7 +142,7 @@ int send_tc(void *data, struct timeval *scheduled, struct timeval *interval) {
 	return 0;
 }
 
-int process_tc(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id) {
+int process_tc(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
 	dessert_ext_t *ext;
 
 	if(dessert_msg_getext(msg, &ext, LSR_EXT_TC, 0)){
@@ -207,7 +207,7 @@ int process_tc(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const d
 	return DESSERT_MSG_KEEP;
 }
 
-int refresh_list(void *data, struct timeval *scheduled, struct timeval *interval) {
+dessert_per_result_t refresh_list(void *data, struct timeval *scheduled, struct timeval *interval) {
 	pthread_rwlock_wrlock(&pp_rwlock);
 	node_neighbors_t *neighbor = node_neighbors_head;
 	while (neighbor) {
@@ -224,7 +224,7 @@ int refresh_list(void *data, struct timeval *scheduled, struct timeval *interval
 	return 0;
 }
 
-int refresh_rt(void *data, struct timeval *scheduled, struct timeval *interval) {
+dessert_per_result_t refresh_rt(void *data, struct timeval *scheduled, struct timeval *interval) {
 	pthread_rwlock_wrlock(&pp_rwlock);
 	all_nodes_t *node = all_nodes_head;
 	node_neighbors_t *neighbor;
@@ -254,8 +254,8 @@ int refresh_rt(void *data, struct timeval *scheduled, struct timeval *interval) 
 }
 
 // --- CALLBACK PIPELINE --- //
-int drop_errors(dessert_msg_t* msg, size_t len,	dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id) {
-	if (proc->lflags & DESSERT_LFLAG_PREVHOP_SELF || proc->lflags & DESSERT_LFLAG_SRC_SELF) {
+int drop_errors(dessert_msg_t* msg, uint32_t len,	dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
+	if (proc->lflags & DESSERT_RX_FLAG_L2_SRC || proc->lflags & DESSERT_RX_FLAG_L25_SRC) {
 		dessert_info("dropping packets sent to myself");
 		return DESSERT_MSG_DROP;
 	}
@@ -263,9 +263,9 @@ int drop_errors(dessert_msg_t* msg, size_t len,	dessert_msg_proc_t *proc, const 
 	return DESSERT_MSG_KEEP;
 }
 
-int forward_packet(dessert_msg_t* msg, size_t len, dessert_msg_proc_t *proc, const dessert_meshif_t *iface, dessert_frameid_t id) {
+int forward_packet(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
 	// if current node is the destination of the message but message is not for the current node
-	if (memcmp(dessert_l25_defsrc, msg->l2h.ether_dhost, ETH_ALEN) == 0 && !(proc->lflags & DESSERT_LFLAG_DST_SELF)) {
+	if (memcmp(dessert_l25_defsrc, msg->l2h.ether_dhost, ETH_ALEN) == 0 && !(proc->lflags & DESSERT_RX_FLAG_L25_DST)) {
 		all_nodes_t* node;
 		HASH_FIND(hh, all_nodes_head, msg->l2h.ether_dhost, ETH_ALEN, node);
 

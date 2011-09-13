@@ -22,7 +22,3 @@ typedef struct all_nodes {
 	UT_hash_handle hh;
 } all_nodes_t;
 extern all_nodes_t *all_nodes_head;
-
-//////////////// EXTENSIONS
-typedef struct  hello_ext {
-} __attribute__((__packed__)) hello_ext_t;

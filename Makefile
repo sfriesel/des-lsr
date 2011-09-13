@@ -9,7 +9,7 @@ DIR_BIN = $(PREFIX)$(DESTDIR)
 DIR_ETC = $(PREFIX)/etc
 DIR_DEFAULT = $(DIR_ETC)/default
 DIR_INIT = $(DIR_ETC)/init.d
-MODULES=des-lsr des-lsr_packethandler des-lsr_routinglogic
+MODULES=des-lsr des-lsr_packethandler des-lsr_routinglogic des-lsr_cli
 UNAME = $(shell uname | tr 'a-z' 'A-Z')
 TARFILES = *.c *.h Makefile *.conf *.init *.default ChangeLog TODO
 
@@ -17,9 +17,9 @@ FILE_DEFAULT = ./$(DAEMONNAME).default
 FILE_ETC = ./$(DAEMONNAME).conf
 FILE_INIT = ./$(DAEMONNAME).init
 
-LIBS = dessert  m
+LIBS = dessert m cli
 CFLAGS += -ggdb -Wall -DTARGET_$(UNAME) -D_GNU_SOURCE -DVERSION_MAJOR=$(VERSION_MAJOR) -DVERSION_MINOR=$(VERSION_MINOR)
-LDFLAGS += $(addprefix -l,$(LIBS))
+LDFLAGS += -pthread $(addprefix -l,$(LIBS))
 
 all: lsr
 
@@ -39,7 +39,7 @@ install:
 	install -m 755 $(FILE_INIT) $(DIR_INIT)/$(DAEMONNAME)
 
 lsr: $(addsuffix .o,$(MODULES)) des-lsr.h
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $(DAEMONNAME) $(addsuffix .o,$(MODULES))
+	$(CC) $(CFLAGS) -o $(DAEMONNAME) $(addsuffix .o,$(MODULES)) $(LDFLAGS)
 
 android: CC=android-gcc
 android: CFLAGS=-I$(DESSERT_LIB)/include -DVERSION_MAJOR=$(VERSION_MAJOR) -DVERSION_MINOR=$(VERSION_MINOR)
