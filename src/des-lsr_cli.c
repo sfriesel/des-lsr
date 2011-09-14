@@ -116,3 +116,29 @@ int cli_show_rt_entry_age(struct cli_def *cli, char *command, char *argv[], int 
 	cli_print(cli, "RT entry age = %d ms\n", rt_refresh_interval);
     return CLI_OK;
 }
+
+int cli_show_rt(struct cli_def *cli, char *command, char *argv[], int argc) {
+	all_nodes_t *node = all_nodes_head;
+	char rt[1000];
+
+	if (!node) {
+		return CLI_OK;
+	}
+
+	cli_print(cli, "##############################################################################################");
+	cli_print(cli, "## MAC\t\t\t# NEXT HOP\t\t# DISTANCE\t# SEQ NR\t# ENTRY AGE ##");
+	cli_print(cli, "##############################################################################################");
+
+	while (node) {
+		sprintf(rt, "## " MAC "\t# " MAC "\t# %d\t\t# %d\t    ##\t",
+				node->addr[0], node->addr[1], node->addr[2], node->addr[3],
+				node->addr[4], node->addr[5], node->next_hop[0], node->next_hop[1],
+				node->next_hop[2], node->next_hop[3], node->next_hop[4],
+				node->next_hop[5], node->seq_nr, node->entry_age);
+		cli_print(cli, rt);
+		node = node->hh.next;
+	}
+
+	cli_print(cli, "##############################################################################################");
+	return CLI_OK;
+}

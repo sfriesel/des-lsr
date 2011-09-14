@@ -40,15 +40,16 @@ int main (int argc, char** argv) {
 	cli_register_command(dessert_cli, dessert_cli_show, "refresh_list", cli_show_refresh_list, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, "show refresh NH interval");
 	cli_register_command(dessert_cli, cli_cfg_set, "refresh_rt", cli_set_refresh_rt, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "set refresh RT interval");
 	cli_register_command(dessert_cli, dessert_cli_show, "refresh_rt", cli_show_refresh_rt, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, "show refresh RT interval");
+	cli_register_command(dessert_cli, dessert_cli_show, "rt", cli_show_rt, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, "show RT");
 
 	/* callback registration */
 	dessert_sysrxcb_add(sys_to_mesh, 10);
 	dessert_meshrxcb_add(dessert_msg_ifaceflags_cb, 20);
-	dessert_meshrxcb_add(drop_errors, 40);
-	dessert_meshrxcb_add(process_hello, 50);
-	dessert_meshrxcb_add(process_tc, 60);
-	dessert_meshrxcb_add(forward_packet, 70);
-	dessert_meshrxcb_add(mesh_to_sys, 80);
+	dessert_meshrxcb_add(drop_errors, 30);
+	dessert_meshrxcb_add(process_hello, 40);
+	dessert_meshrxcb_add(process_tc, 50);
+	dessert_meshrxcb_add(forward_packet, 60);
+	dessert_meshrxcb_add(mesh_to_sys, 70);
 
 	/* running cli & daemon */
 	cli_file(dessert_cli, cfg, PRIVILEGE_PRIVILEGED, MODE_CONFIG);

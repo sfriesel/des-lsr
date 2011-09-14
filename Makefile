@@ -9,7 +9,7 @@ DIR_ETC = $(DESTDIR)/etc
 DIR_DEFAULT = $(DIR_ETC)/default
 DIR_INIT = $(DIR_ETC)/init.d
 
-MODULES = src/des-lsr src/des-lsr_routinglogic src/des-lsr_packethandler src/des-lsr_dijkstra src/des-lsr_cli
+MODULES = src/des-lsr src/des-lsr_routinglogic src/des-lsr_packethandler src/des-lsr_cli
 
 UNAME = $(shell uname | tr 'a-z' 'A-Z')
 TARFILES = src etc Makefile ChangeLog android.files icon.*
