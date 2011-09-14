@@ -1,30 +1,32 @@
 DAEMONNAME = des-lsr
 VERSION_MAJOR = 0
-VERSION_MINOR = 1
+VERSION_MINOR = 3
 VERSION = $(VERSION_MAJOR).$(VERSION_MINOR)
-DESTDIR ?= /usr/sbin
-PREFIX ?=
+DESTDIR ?=
 
-DIR_BIN = $(PREFIX)$(DESTDIR)
-DIR_ETC = $(PREFIX)/etc
+DIR_BIN = $(DESTDIR)/usr/sbin
+DIR_ETC = $(DESTDIR)/etc
 DIR_DEFAULT = $(DIR_ETC)/default
 DIR_INIT = $(DIR_ETC)/init.d
-MODULES=des-lsr des-lsr_packethandler des-lsr_routinglogic des-lsr_cli
+
+MODULES = src/des-lsr src/des-lsr_routinglogic src/des-lsr_packethandler src/des-lsr_dijkstra src/des-lsr_cli
+
 UNAME = $(shell uname | tr 'a-z' 'A-Z')
-TARFILES = *.c *.h Makefile *.conf *.init *.default ChangeLog TODO
+TARFILES = src etc Makefile ChangeLog android.files icon.*
 
-FILE_DEFAULT = ./$(DAEMONNAME).default
-FILE_ETC = ./$(DAEMONNAME).conf
-FILE_INIT = ./$(DAEMONNAME).init
+FILE_DEFAULT = etc/$(DAEMONNAME).default
+FILE_ETC = etc/$(DAEMONNAME).conf
+FILE_INIT = etc/$(DAEMONNAME).init
 
-LIBS = dessert m cli
-CFLAGS += -ggdb -Wall -DTARGET_$(UNAME) -D_GNU_SOURCE -DVERSION_MAJOR=$(VERSION_MAJOR) -DVERSION_MINOR=$(VERSION_MINOR)
-LDFLAGS += -pthread $(addprefix -l,$(LIBS))
+LIBS = dessert pthread cli
+CFLAGS += -ggdb -Wall -DTARGET_$(UNAME) -D_GNU_SOURCE -I/usr/include
+LDFLAGS += $(addprefix -l,$(LIBS))
 
-all: lsr
+all: build
 
 clean:
 	rm -f *.o *.tar.gz ||  true
+	find . -name *.o -delete
 	rm -f $(DAEMONNAME) || true
 	rm -rf $(DAEMONNAME).dSYM || true
 
@@ -38,23 +40,25 @@ install:
 	mkdir -p $(DIR_INIT)
 	install -m 755 $(FILE_INIT) $(DIR_INIT)/$(DAEMONNAME)
 
-lsr: $(addsuffix .o,$(MODULES)) des-lsr.h
-	$(CC) $(CFLAGS) -o $(DAEMONNAME) $(addsuffix .o,$(MODULES)) $(LDFLAGS)
+build: $(addsuffix .o,$(MODULES))
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(DAEMONNAME) $(addsuffix .o,$(MODULES))
 
 android: CC=android-gcc
-android: CFLAGS=-I$(DESSERT_LIB)/include -DVERSION_MAJOR=$(VERSION_MAJOR) -DVERSION_MINOR=$(VERSION_MINOR)
-android: LDFLAGS=-L$(DESSERT_LIB)/lib -Wl,-rpath-link=$(DESSERT_LIB)/lib -ldessert 
-android: lsr package
+android: CFLAGS=-I$(DESSERT_LIB)/include
+android: LDFLAGS=-L$(DESSERT_LIB)/lib -Wl,-rpath-link=$(DESSERT_LIB)/lib -ldessert
+android: build package
 
 package:
 	mv $(DAEMONNAME) android.files/daemon
 	zip -j android.files/$(DAEMONNAME).zip android.files/*
 
 tarball: clean
-	mkdir $(DAEMONNAME)-$(VERSION)
-	cp -R $(TARFILES) $(DAEMONNAME)-$(VERSION)
-	tar -czf $(DAEMONNAME)-$(VERSION).tar.gz $(DAEMONNAME)-$(VERSION)
-	rm -rf $(DAEMONNAME)-$(VERSION)
+	mkdir des-lsr
+	cp -r $(TARFILES) des-lsr
+	tar -czf des-lsr.tar.gz des-lsr
+	rm -rf des-lsr
 
 debian: tarball
-	cp $(DAEMONNAME)-$(VERSION).tar.gz ../debian/tarballs/$(DAEMONNAME)_$(VERSION).orig.tar.gz
+	cp $(DAEMONNAME).tar.gz ../debian/tarballs/$(DAEMONNAME).orig.tar.gz
+
+.SILENT: clean
