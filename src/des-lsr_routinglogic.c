@@ -112,22 +112,19 @@ dessert_per_result_t send_tc(void *data, struct timeval *scheduled, struct timev
 
 	// add TC extension
 	dessert_ext_t *ext;
-	uint8_t ext_size = 1 + ((sizeof(node_neighbors_t)- sizeof(node_neighbors_head->hh)) * HASH_COUNT(node_neighbors_head));
-	dessert_msg_addext(tc, &ext, LSR_EXT_TC, ext_size);
-	uint* tc_ext = ext->data;
-	memcpy(tc_ext, &(ext_size), 1);
-	tc_ext++;
+	//FIXME may overflow for >31 neighbors
+	uint8_t ext_size = sizeof(tc_ext_t) * HASH_COUNT(node_neighbors_head);
+	if(dessert_msg_addext(tc, &ext, LSR_EXT_TC, ext_size) != DESSERT_OK) {
+		dessert_notice("TC extension too big! This is an implementation bug");
+	}
 
 	// copy NH list into extension
-	dir_neigh = node_neighbors_head;
-	while (dir_neigh) {
-		memcpy(tc_ext, dir_neigh->addr, ETH_ALEN);
-		tc_ext += ETH_ALEN;
-		memcpy(tc_ext, &(dir_neigh->entry_age), 1);
-		tc_ext++;
-		memcpy(tc_ext, &(dir_neigh->weight), 1);
-		tc_ext++;
-		dir_neigh = dir_neigh->hh.next;
+	node_neighbors_t *neighbor;
+	tc_ext_t *iter = (tc_ext_t*) ext->data;
+	for(neighbor = node_neighbors_head; neighbor != NULL; neighbor = neighbor->hh.next) {
+		memcpy(iter->addr, neighbor->addr, ETH_ALEN);
+		iter->entry_age = neighbor->entry_age;
+		iter->weight = neighbor->weight;
 	}
 
 	// add l2.5 header
@@ -145,66 +142,49 @@ dessert_per_result_t send_tc(void *data, struct timeval *scheduled, struct timev
 int process_tc(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
 	dessert_ext_t *ext;
 
-	if(dessert_msg_getext(msg, &ext, LSR_EXT_TC, 0)){
-		pthread_rwlock_wrlock(&pp_rwlock);
-		all_nodes_t *node = malloc(sizeof(all_nodes_t));
-		node_neighbors_t *neighbor = malloc(sizeof(node_neighbors_t));
-		struct ether_header* l25h = dessert_msg_getl25ether(msg);
-		void* tc_ext = (void*) ext->data;
-		u_int8_t ext_size;
-		u_int8_t addr[ETH_ALEN];
-		u_int8_t entry_age;
-		u_int8_t weight;
+	if(!dessert_msg_getext(msg, &ext, LSR_EXT_TC, 0)) {
+		return DESSERT_MSG_KEEP;
+	}
+	
+	pthread_rwlock_wrlock(&pp_rwlock);
 
-		// if node is not in RT, add the node
-		HASH_FIND(hh, all_nodes_head, l25h->ether_shost, ETH_ALEN, node);
-		if (!node) {
-			dessert_info("NODE NOT IN RT");
-			node = malloc(sizeof(all_nodes_t));
-			memcpy(node->addr, l25h->ether_shost, ETH_ALEN);
-			node->entry_age = RT_ENTRY_AGE;
-			node->seq_nr = msg->u8;
-			HASH_ADD_KEYPTR(hh, all_nodes_head, node->addr, ETH_ALEN, node);
-		}
+	all_nodes_t *node;
+	struct ether_header* l25h = dessert_msg_getl25ether(msg);
 
-		// add NH to RT
-		memcpy(&ext_size, tc_ext, 1);
-		tc_ext++;
-		while (ext_size-1 > 0) {
-			memcpy(addr, tc_ext, ETH_ALEN);
-			ext_size -= ETH_ALEN;
-			tc_ext += ETH_ALEN;
-			memcpy(&entry_age, tc_ext, 1);
-			ext_size--;
-			tc_ext++;
-			memcpy(&weight, tc_ext, 1);
-			ext_size--;
-			tc_ext++;
-			HASH_FIND(hh, all_nodes_head, l25h->ether_shost, ETH_ALEN, node);
-			if (node->seq_nr >= msg->u8) {
-				return DESSERT_MSG_DROP;
-			}
-			node->entry_age = RT_ENTRY_AGE;
-			node->seq_nr = msg->u8;
-			HASH_FIND(hh, node->neighbors, addr, ETH_ALEN, neighbor);
-			if (neighbor) {
-				neighbor->entry_age = entry_age;
-				neighbor->weight = weight;
-			} else {
-				neighbor = malloc(sizeof(node_neighbors_t));
-				memcpy(neighbor->addr, addr, ETH_ALEN);
-				neighbor->entry_age = entry_age;
-				neighbor->weight = weight;
-				HASH_ADD_KEYPTR(hh, node->neighbors, neighbor->addr, ETH_ALEN, neighbor);
-			}
-		}
-
-		dessert_meshsend_fast_randomized(msg);	// resend TC packet
-		pthread_rwlock_unlock(&pp_rwlock);
-		return DESSERT_MSG_DROP;
+	// if node is not in RT, add the node
+	HASH_FIND(hh, all_nodes_head, l25h->ether_shost, ETH_ALEN, node);
+	if (!node) {
+		node = malloc(sizeof(all_nodes_t));
+		memcpy(node->addr, l25h->ether_shost, ETH_ALEN);
+		node->entry_age = RT_ENTRY_AGE;
+		node->seq_nr = msg->u8;
+		HASH_ADD_KEYPTR(hh, all_nodes_head, node->addr, ETH_ALEN, node);
 	}
 
-	return DESSERT_MSG_KEEP;
+	int neigh_count = (ext->len - DESSERT_EXTLEN)/sizeof(tc_ext_t);
+	tc_ext_t *tc_data = (tc_ext_t*) ext->data;
+	// add NH to RT
+	for(int i = 0; i < neigh_count; i++) {
+		//FIXME: catch seq_nr overflow
+		if (node->seq_nr >= msg->u8) {
+			return DESSERT_MSG_DROP;
+		}
+		node->entry_age = RT_ENTRY_AGE;
+		node->seq_nr = msg->u8;
+		node_neighbors_t *neighbor;
+		HASH_FIND(hh, node->neighbors, tc_data[i].addr, ETH_ALEN, neighbor);
+		if(!neighbor) {
+			neighbor = malloc(sizeof(node_neighbors_t));
+			memcpy(neighbor->addr, tc_data[i].addr, ETH_ALEN);
+			HASH_ADD_KEYPTR(hh, node->neighbors, neighbor->addr, ETH_ALEN, neighbor);
+		}
+		neighbor->entry_age = tc_data[i].entry_age;
+		neighbor->weight = tc_data[i].weight;
+	}
+
+	dessert_meshsend_fast_randomized(msg);	// resend TC packet
+	pthread_rwlock_unlock(&pp_rwlock);
+	return DESSERT_MSG_DROP;
 }
 
 dessert_per_result_t refresh_list(void *data, struct timeval *scheduled, struct timeval *interval) {

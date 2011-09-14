@@ -9,7 +9,7 @@ typedef struct node_neighbors {
 	u_int8_t entry_age;
 	u_int8_t weight;
 	UT_hash_handle hh;
-} __attribute__((__packed__)) node_neighbors_t;
+} node_neighbors_t;
 extern node_neighbors_t *node_neighbors_head;
 
 // a hashmap for all nodes
@@ -22,3 +22,9 @@ typedef struct all_nodes {
 	UT_hash_handle hh;
 } all_nodes_t;
 extern all_nodes_t *all_nodes_head;
+
+typedef struct tc_ext {
+	u_int8_t addr[ETH_ALEN];
+	u_int8_t entry_age;
+	u_int8_t weight;
+} __attribute__((__packed__)) tc_ext_t;
