@@ -9,7 +9,7 @@ DIR_ETC = $(DESTDIR)/etc
 DIR_DEFAULT = $(DIR_ETC)/default
 DIR_INIT = $(DIR_ETC)/init.d
 
-MODULES = src/des-lsr src/des-lsr_routinglogic src/des-lsr_packethandler src/des-lsr_cli
+MODULES = src/lsr src/pipeline/lsr_pipeline src/periodic/lsr_periodic src/cli/lsr_cli src/database/lsr_database src/database/lsr_nt src/database/lsr_tc
 
 UNAME = $(shell uname | tr 'a-z' 'A-Z')
 TARFILES = src etc Makefile ChangeLog android.files icon.*
@@ -19,7 +19,7 @@ FILE_ETC = etc/$(DAEMONNAME).conf
 FILE_INIT = etc/$(DAEMONNAME).init
 
 LIBS = dessert pthread cli
-CFLAGS += -ggdb -Wall -DTARGET_$(UNAME) -D_GNU_SOURCE -I/usr/include
+CFLAGS += -std=gnu99 -O3 -Wall -Wextra -Wno-unused-parameter -pedantic -Werror -DTARGET_$(UNAME) -D_GNU_SOURCE
 LDFLAGS += $(addprefix -l,$(LIBS))
 
 all: build
@@ -41,7 +41,7 @@ install:
 	install -m 755 $(FILE_INIT) $(DIR_INIT)/$(DAEMONNAME)
 
 build: $(addsuffix .o,$(MODULES))
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $(DAEMONNAME) $(addsuffix .o,$(MODULES))
+	$(CC) $(LDFLAGS) -o $(DAEMONNAME) $(addsuffix .o,$(MODULES))
 
 android: CC=android-gcc
 android: CFLAGS=-I$(DESSERT_LIB)/include

@@ -1,6 +1,44 @@
-// --- LIBRARIES --- //
-#include "lsr.h"
-#include "lsr_items.h"
+#include <string.h>
+
+#include "lsr_config.h"
+#include "periodic/lsr_periodic.h"
+#include "pipeline/lsr_pipeline.h"
+#include "cli/lsr_cli.h"
+
+uint16_t hello_interval = HELLO_INTERVAL;
+uint16_t tc_interval = TC_INTERVAL;
+uint16_t neighbor_aging_interval = NEIGHBOR_AGING_INTERVAL;
+uint16_t node_aging_interval = NODE_AGING_INTERVAL;
+uint8_t  neighbor_lifetime = NEIGHBOR_LIFETIME;
+uint8_t  node_lifetime = NODE_LIFETIME;
+
+void init_logic() {
+	#if 0
+	// registering periodic for HELLO packets
+	struct timeval hello_interval_t;
+	hello_interval_t.tv_sec = hello_interval / 1000;
+	hello_interval_t.tv_usec = (hello_interval % 1000) * 1000;
+	periodic_send_hello = dessert_periodic_add(send_hello, NULL, NULL, &hello_interval_t);
+
+	// registering periodic for TC packets
+	struct timeval tc_interval_t;
+	tc_interval_t.tv_sec = tc_interval / 1000;
+	tc_interval_t.tv_usec = (tc_interval % 1000) * 1000;
+	periodic_send_tc = dessert_periodic_add(send_tc, NULL, NULL, &tc_interval_t);
+
+	// registering periodic for refreshing neighboring list
+	struct timeval refresh_neighbor_t;
+	refresh_neighbor_t.tv_sec = neighbor_aging_interval / 1000;
+	refresh_neighbor_t.tv_usec = (neighbor_aging_interval % 1000) * 1000;
+	periodic_refresh_nh = dessert_periodic_add(refresh_list, NULL, NULL, &refresh_neighbor_t);
+
+	// registering periodic for refreshing routing table
+	struct timeval refresh_rt_t;
+	refresh_rt_t.tv_sec = node_aging_interval / 1000;
+	refresh_rt_t.tv_usec = (node_aging_interval % 1000) * 1000;
+	periodic_refresh_rt = dessert_periodic_add(refresh_rt, NULL, NULL, &refresh_rt_t);
+	#endif
+}
 
 // --- DAEMON INITIALIZATION --- //
 int main (int argc, char** argv) {
@@ -43,13 +81,18 @@ int main (int argc, char** argv) {
 	cli_register_command(dessert_cli, dessert_cli_show, "rt", cli_show_rt, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, "show RT");
 
 	/* callback registration */
-	dessert_sysrxcb_add(sys_to_mesh, 10);
-	dessert_meshrxcb_add(dessert_msg_ifaceflags_cb, 20);
-	dessert_meshrxcb_add(drop_errors, 30);
-	dessert_meshrxcb_add(process_hello, 40);
-	dessert_meshrxcb_add(process_tc, 50);
-	dessert_meshrxcb_add(forward_packet, 60);
-	dessert_meshrxcb_add(mesh_to_sys, 70);
+	dessert_sysrxcb_add(dessert_msg_ifaceflags_cb_sys, 5);
+	dessert_sysrxcb_add(lsr_sys2mesh, 10);
+	
+	dessert_meshrxcb_add(dessert_msg_ifaceflags_cb, 10);
+	dessert_meshrxcb_add(lsr_process_ttl, 20);
+	dessert_meshrxcb_add(lsr_drop_errors, 30);
+	//dessert_meshrxcb_add(lsr_process_hello, 40);
+	dessert_meshrxcb_add(lsr_process_tc, 50);
+	dessert_meshrxcb_add(lsr_forward_multicast, 55);
+	dessert_meshrxcb_add(lsr_forward_unicast, 60);
+	dessert_meshrxcb_add(lsr_mesh2sys, 70);
+	dessert_meshrxcb_add(lsr_unhandled, 200);
 
 	/* running cli & daemon */
 	cli_file(dessert_cli, cfg, PRIVILEGE_PRIVILEGED, MODE_CONFIG);
@@ -57,3 +100,4 @@ int main (int argc, char** argv) {
 	dessert_run();
 	return (0);
 }
+
