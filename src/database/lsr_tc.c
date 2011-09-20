@@ -112,11 +112,18 @@ bool lsr_tc_node_check_seq_nr(mac_addr node_addr, uint8_t seq_nr) {
 	if (!node) {
 		return false;
 	}
-	//FIXME!!
-	int result = seq_nr;
-	result -= node->seq_nr;
-	result = result & UINT8_MAX;
-	return (result < UINT8_MAX / 2);
+	uint64_t base = node->seq_nr >> 8;
+	
+	for(uint64_t guess = ((base - 1) << 8) + seq_nr; ; guess += UINT8_MAX + 1) {
+		if(abs(guess - node->seq_nr) < UINT8_MAX/2) {
+			if(guess <= node->seq_nr) {
+				return false;
+			} else {
+				node->seq_nr = guess;
+				return true;
+			}
+		}
+	}
 }
 
 dessert_result_t lsr_tc_get_next_hop(mac_addr dest_addr, mac_addr *next_hop, dessert_meshif_t **iface) {
