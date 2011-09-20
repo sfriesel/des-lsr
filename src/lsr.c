@@ -1,6 +1,6 @@
 // --- LIBRARIES --- //
-#include "des-lsr.h"
-#include "des-lsr_items.h"
+#include "lsr.h"
+#include "lsr_items.h"
 
 // --- DAEMON INITIALIZATION --- //
 int main (int argc, char** argv) {
