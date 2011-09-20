@@ -10,7 +10,7 @@ edge_t *topology = NULL;
 //the set of all currently known nodes
 node_t *node_set = NULL;
 
-edge_t *lsr_tc_create_edge(node_t *target, uint32_t lifetime, uint32_t weight) {
+edge_t *lsr_create_edge(node_t *target, uint32_t lifetime, uint32_t weight) {
 	edge_t *edge = malloc(sizeof(edge_t));
 	edge->node = target;
 	edge->lifetime = lifetime;
@@ -50,7 +50,7 @@ dessert_result_t lsr_tc_update_node(mac_addr node_addr, uint8_t seq_nr) {
 		}
 	}
 	if(!edge) {
-		edge = lsr_tc_create_edge(node, NODE_LIFETIME, DEFAULT_WEIGHT);
+		edge = lsr_create_edge(node, NODE_LIFETIME, DEFAULT_WEIGHT);
 		CDL_PREPEND(topology, edge);
 	}
 	else {
@@ -96,7 +96,7 @@ dessert_result_t lsr_tc_update_node_neighbor(mac_addr node_addr, mac_addr neighb
 	}
 	if(!edge) {
 		node_t *neighbor = lsr_tc_get_or_create_node(neighbor_addr);
-		edge = lsr_tc_create_edge(neighbor, NEIGHBOR_LIFETIME, DEFAULT_WEIGHT);
+		edge = lsr_create_edge(neighbor, NEIGHBOR_LIFETIME, DEFAULT_WEIGHT);
 		CDL_PREPEND(node->neighbors, edge);
 	}
 	else {

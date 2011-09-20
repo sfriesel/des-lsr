@@ -9,6 +9,13 @@ pthread_rwlock_t db_lock = PTHREAD_RWLOCK_INITIALIZER;
 uint64_t tc_seq_nr = 0;
 uint64_t data_seq_nr = 0;
 
+dessert_result_t lsr_db_dump_neighbor_table(neighbor_info_t **result_out, int *neighbor_count) {
+	pthread_rwlock_rdlock(&db_lock);
+	dessert_result_t result = lsr_nt_dump_neighbor_table(result_out, neighbor_count);
+	pthread_rwlock_unlock(&db_lock);
+	return result;
+}
+
 dessert_result_t lsr_db_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint8_t seq_nr) {
 	pthread_rwlock_wrlock(&db_lock);
 	dessert_result_t result = lsr_nt_update(neighbor_l2, neighbor_l25, iface, seq_nr, DEFAULT_WEIGHT);
@@ -40,6 +47,13 @@ bool lsr_db_tc_check_seq_nr(mac_addr node_addr, uint8_t seq_nr) {
 uint64_t lsr_db_data_get_seq_nr(void) {
 	pthread_rwlock_wrlock(&db_lock);
 	uint64_t result = data_seq_nr++;
+	pthread_rwlock_unlock(&db_lock);
+	return result;
+}
+
+uint64_t lsr_db_tc_get_seq_nr(void) {
+	pthread_rwlock_wrlock(&db_lock);
+	uint64_t result = tc_seq_nr++;
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }

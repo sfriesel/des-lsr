@@ -4,8 +4,30 @@
 
 #include <utlist.h>
 
-//neighbor table
+// neighbor table; hash map of all neighboring l2 interfaces
 neighbor_iface_t *nt = NULL;
+
+// circular list of edge point to l25 neighbor nodes
+edge_t *neighbors = NULL;
+
+dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t **result, int *neighbor_count) {
+	*neighbor_count = 0;
+	edge_t *neighbor;
+	CDL_FOREACH(neighbors, neighbor) {
+		(*neighbor_count)++;
+	}
+	
+	neighbor_info_t *iter = *result = malloc(*neighbor_count * sizeof(neighbor_info_t));
+	
+	CDL_FOREACH(neighbors, neighbor) {
+		memcpy(iter->addr, neighbor->node->addr, ETH_ALEN);
+		iter->lifetime = neighbor->lifetime;
+		iter->weight = neighbor->weight;
+		iter++;
+	}
+	
+	return DESSERT_OK;
+}
 
 dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint8_t seq_nr, uint8_t weight) {
 	node_t *node = lsr_tc_get_or_create_node(neighbor_l25);
@@ -16,7 +38,7 @@ dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dess
 	if(!neighbor) {
 		neighbor = malloc(sizeof(neighbor_iface_t));
 		memcpy(neighbor->addr, neighbor_l2, ETH_ALEN);
-		neighbor->node = node;
+		neighbor->edge->node = node;
 		neighbor->iface = iface;
 		CDL_PREPEND(ngbr_ifaces, neighbor);
 		HASH_ADD_KEYPTR(hh, nt, neighbor->addr, ETH_ALEN, neighbor);

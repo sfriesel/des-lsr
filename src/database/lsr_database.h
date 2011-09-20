@@ -2,6 +2,15 @@
 #define LSR_DATABASE
 #include <dessert.h>
 
+// exchange format to export neighbor table into TC messages
+typedef struct neighbor_info {
+	uint8_t addr[ETH_ALEN];
+	uint8_t lifetime;
+	uint8_t weight;
+} neighbor_info_t;
+
+dessert_result_t lsr_db_dump_neighbor_table(neighbor_info_t **result, int *neighbor_count);
+
 /**
  * Update that the neighbor given by the arguments has been seen
  * returns: DESSERT_OK on successful update, DESSERT_ERR otherwise

@@ -5,6 +5,12 @@
 #include <pthread.h>
 #include <string.h>
 
+typedef struct tc_ext {
+	uint8_t addr[ETH_ALEN];
+	uint8_t age;
+	uint8_t weight;
+} __attribute__((__packed__)) tc_ext_t;
+
 int lsr_send_randomized(dessert_msg_t *msg) {
 	if(msg->ttl) {
 		return dessert_meshsend_randomized(msg);
