@@ -3,13 +3,15 @@
 #include <uthash.h>
 #include <dessert.h>
 struct edge; //forward declare
-struct neighbor_iface;
+struct neighbor;
 
 typedef struct node {
 	mac_addr addr; //l2.5
-	struct neighbor_iface *next_hop;
+	struct neighbor *next_hop;
 	uint64_t seq_nr;
 	struct edge *neighbors;
+	uint32_t lifetime;
+	uint32_t weight;
 	UT_hash_handle hh;
 } node_t;
 

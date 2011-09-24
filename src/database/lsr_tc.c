@@ -3,12 +3,10 @@
 #include "../lsr_config.h"
 #include <utlist.h>
 
-#define INFINITY UINT8_MAX
+#define INFINITE_WEIGHT UINT32_MAX
 
-//edges pointing to all reachable nodes, weight an d lifetime refer to the overall route
-edge_t *topology = NULL;
 //the set of all currently known nodes
-node_t *node_set = NULL;
+static node_t *node_set = NULL;
 
 edge_t *lsr_create_edge(node_t *target, uint32_t lifetime, uint32_t weight) {
 	edge_t *edge = malloc(sizeof(edge_t));
@@ -43,47 +41,15 @@ node_t *lsr_tc_get_or_create_node(mac_addr addr) {
 
 dessert_result_t lsr_tc_update_node(mac_addr node_addr, uint8_t seq_nr) {
 	node_t *node = lsr_tc_get_or_create_node(node_addr);
-	edge_t *edge = NULL;
-	CDL_FOREACH(topology, edge) {
-		if(mac_equal(edge->node->addr, node_addr)) {
-			break;
-		}
-	}
-	if(!edge) {
-		edge = lsr_create_edge(node, NODE_LIFETIME, DEFAULT_WEIGHT);
-		CDL_PREPEND(topology, edge);
-	}
-	else {
-		edge->lifetime = NEIGHBOR_LIFETIME;
-		edge->weight = DEFAULT_WEIGHT;
-	}
+	node->lifetime = NEIGHBOR_LIFETIME;
+	node->weight = DEFAULT_WEIGHT;
+	
 	return DESSERT_OK;
 }
 
 int lsr_tc_node_cmp(node_t *left, node_t *right) {
 	return memcmp(left->addr, right->addr, ETH_ALEN);
 }
-
-#if 0
-void lsr_tc_node_ref(node_t *node) {
-	node->refcount++;
-}
-
-void lsr_tc_node_unref(node_t *node) {
-	assert(node->refcount != 0);
-	node->refcount--;
-	if(!node->ref_count) {
-		edge_t *tmp1, *tmp2;
-		CDL_FOREACH_SAFE(node->neighbors, node->neighbors, tmp1, tmp2) {
-			CDL_DELETE(node->neighbors, node->neighbors);
-			lsr_tc_node_unref(node->neighbors->node);
-			free(node->neighbors);
-		}
-		
-		free(node);
-	}
-}
-#endif
 
 dessert_result_t lsr_tc_update_node_neighbor(mac_addr node_addr, mac_addr neighbor_addr, uint8_t lifetime, uint8_t weight) {
 	node_t *node = lsr_tc_get_or_create_node(node_addr);
@@ -138,34 +104,85 @@ dessert_result_t lsr_tc_get_next_hop(mac_addr dest_addr, mac_addr *next_hop, des
 	return DESSERT_OK;
 }
 
-dessert_result_t lsr_tc_age(edge_t *edge) {
-	edge->lifetime--;
-	if(!edge->lifetime) {
-		CDL_DELETE(edge, edge);
+dessert_result_t lsr_tc_age(node_t *node) {
+	if(node->lifetime)
+		node->lifetime--;
+	// if node has no next_hop, it's not referenced
+	// as neighbor of any reachable node
+	if(!node->lifetime && !node->next_hop) {
+		if(node->neighbors) {
+			edge_t *tmp1, *tmp2, *edge;
+			CDL_FOREACH_SAFE(node->neighbors, edge, tmp1, tmp2) {
+				CDL_DELETE(node->neighbors, edge);
+				free(edge);
+			}
+		}
+		HASH_DEL(node_set, node);
+		free(node);
 	}
 	return DESSERT_OK;
 }
 
 dessert_result_t lsr_tc_age_all(void) {
-	edge_t *route_edge = NULL;
-	CDL_FOREACH(topology, route_edge) {
-		edge_t *node_neighbor_edge;
-		CDL_FOREACH(route_edge->node->neighbors, node_neighbor_edge) {
-			lsr_tc_age(node_neighbor_edge);
-		}
-		lsr_tc_age(route_edge);
-	}
+	for(node_t *node = node_set; node; node = node->hh.next)
+		lsr_tc_age(node);
 	return DESSERT_OK;
 }
 
-#if 0
+typedef struct priority_queue {
+	struct priority_queue *prev, *next;
+	node_t *node;
+} priority_queue_t;
+
+node_t *priority_queue_poll(priority_queue_t **queue) {
+	if(!*queue) {
+		return NULL;
+	}
+	priority_queue_t *min_item = *queue;
+	priority_queue_t *item;
+	CDL_FOREACH(*queue, item) {
+		if(item->node->weight < min_item->node->weight) {
+			min_item = item;
+		}
+	}
+	CDL_DELETE(*queue, min_item);
+	node_t *result = min_item->node;
+	free(min_item);
+	return result;
+}
+
+void priority_queue_add(priority_queue_t **queue, node_t *node) {
+	priority_queue_t *el = malloc(sizeof(priority_queue_t));
+	el->node = node;
+	CDL_PREPEND(*queue, el);
+}
+
 dessert_result_t lsr_tc_dijkstra() {
 	node_t *node = NULL;
-	HASH_ITER(topology, node) {
-		node->weight = INFINITY;
+	for(node = node_set; node; node = node->hh.next) {
+		node->weight = INFINITE_WEIGHT;
+		node->next_hop = NULL;
 	}
+	//initialize direct neighbors weights
+	lsr_nt_set_neighbor_weights();
 	
-	
+	//queue of all unvisited nodes
+	priority_queue_t *queue = NULL;
+	for(node = node_set; node; node = node->hh.next) {
+		priority_queue_add(&queue, node);
+	}
+	node_t *current_node;
+	while((current_node = priority_queue_poll(&queue))) {
+		edge_t *neighbor_edge;
+		CDL_FOREACH(current_node->neighbors, neighbor_edge) {
+			node_t * neighbor_node = neighbor_edge->node;
+			uint32_t dist = current_node->weight + neighbor_edge->weight;
+			if(neighbor_node->weight > dist) {
+				neighbor_node->weight = dist;
+				neighbor_node->next_hop = current_node->next_hop;
+			}
+		}
+	}
+	return DESSERT_OK;
 }
-#endif
 

@@ -79,7 +79,9 @@ int main (int argc, char** argv) {
 	cli_register_command(dessert_cli, cli_cfg_set, "refresh_rt", cli_set_refresh_rt, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "set refresh RT interval");
 	cli_register_command(dessert_cli, dessert_cli_show, "refresh_rt", cli_show_refresh_rt, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, "show refresh RT interval");
 	cli_register_command(dessert_cli, dessert_cli_show, "rt", cli_show_rt, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, "show RT");
-
+	
+	cli_file(dessert_cli, cfg, PRIVILEGE_PRIVILEGED, MODE_CONFIG);
+	
 	/* callback registration */
 	dessert_sysrxcb_add(dessert_msg_ifaceflags_cb_sys, 5);
 	dessert_sysrxcb_add(lsr_sys2mesh, 10);
@@ -95,7 +97,7 @@ int main (int argc, char** argv) {
 	dessert_meshrxcb_add(lsr_unhandled, 200);
 
 	/* running cli & daemon */
-	cli_file(dessert_cli, cfg, PRIVILEGE_PRIVILEGED, MODE_CONFIG);
+	
 	dessert_cli_run();
 	dessert_run();
 	return (0);
