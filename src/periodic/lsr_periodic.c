@@ -5,13 +5,18 @@
 
 #include <uthash.h>
 
+dessert_periodic_t *periodic_send_hello;
+dessert_periodic_t *periodic_send_tc;
+dessert_periodic_t *periodic_refresh_nh;
+dessert_periodic_t *periodic_refresh_rt;
+
 typedef struct tc_ext {
 	mac_addr addr;
 	uint8_t lifetime;
 	uint8_t weight;
 } __attribute__((__packed__)) tc_ext_t;
 
-dessert_per_result_t send_tc(void *data, struct timeval *scheduled, struct timeval *interval) {
+dessert_per_result_t lsr_periodic_send_tc(void *data, struct timeval *scheduled, struct timeval *interval) {
 	dessert_msg_t *tc;
 	dessert_msg_new(&tc);
 	tc->ttl = TTL_MAX;

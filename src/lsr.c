@@ -12,20 +12,20 @@ uint16_t node_aging_interval = NODE_AGING_INTERVAL;
 uint8_t  neighbor_lifetime = NEIGHBOR_LIFETIME;
 uint8_t  node_lifetime = NODE_LIFETIME;
 
-void init_logic() {
+static void init_periodics() {
 	#if 0
 	// registering periodic for HELLO packets
 	struct timeval hello_interval_t;
 	hello_interval_t.tv_sec = hello_interval / 1000;
 	hello_interval_t.tv_usec = (hello_interval % 1000) * 1000;
 	periodic_send_hello = dessert_periodic_add(send_hello, NULL, NULL, &hello_interval_t);
-
+	#endif
+	
 	// registering periodic for TC packets
-	struct timeval tc_interval_t;
-	tc_interval_t.tv_sec = tc_interval / 1000;
-	tc_interval_t.tv_usec = (tc_interval % 1000) * 1000;
-	periodic_send_tc = dessert_periodic_add(send_tc, NULL, NULL, &tc_interval_t);
+	struct timeval tc_interval_t = { tc_interval / 1000, (tc_interval % 1000) * 1000};
+	periodic_send_tc = dessert_periodic_add(lsr_periodic_send_tc, NULL, NULL, &tc_interval_t);
 
+	#if 0
 	// registering periodic for refreshing neighboring list
 	struct timeval refresh_neighbor_t;
 	refresh_neighbor_t.tv_sec = neighbor_aging_interval / 1000;
@@ -41,12 +41,13 @@ void init_logic() {
 }
 
 // --- DAEMON INITIALIZATION --- //
-int main (int argc, char** argv) {
+int main (int argc, char *argv[]) {
 	/* initialize daemon with correct parameters */
-	FILE *cfg = NULL;
-	if ((argc == 2) && (strcmp(argv[1], "-nondaemonize") == 0)) {
+	FILE *cfg = dessert_cli_get_cfg(argc, argv);
+	if(argc > 1 && (strcmp(argv[1], "-nondaemonize") == 0)) {
 		dessert_info("starting LSR in non daemonize mode");
-		dessert_init("LSR", 0x02, DESSERT_OPT_NODAEMONIZE);
+		dessert_init("LSR", 0x03, DESSERT_OPT_NODAEMONIZE);
+		dessert_logcfg(DESSERT_LOG_STDERR);
 		char cfg_file_name[] = "/etc/des-lsr.conf";
 		cfg = fopen(cfg_file_name, "r");
 		if (cfg == NULL) {
@@ -55,15 +56,9 @@ int main (int argc, char** argv) {
 		}
 	} else {
 		dessert_info("starting LSR in daemonize mode");
-		cfg = dessert_cli_get_cfg(argc, argv);
-		dessert_init("LSR", 0x03, DESSERT_OPT_NODAEMONIZE);
+		dessert_init("LSR", 0x03, DESSERT_OPT_DAEMONIZE);
 	}
-
-	/* periodic function initialization */
-	init_logic();
-
-	/* logging initialization */
-	dessert_logcfg(DESSERT_LOG_STDERR);
+	
 
 	/* cli initialization */
 	cli_register_command(dessert_cli, dessert_cli_cfg_iface, "sys", dessert_cli_cmd_addsysif, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "initialize sys interface");
@@ -96,8 +91,10 @@ int main (int argc, char** argv) {
 	dessert_meshrxcb_add(lsr_mesh2sys, 70);
 	dessert_meshrxcb_add(lsr_unhandled, 200);
 
+	/* periodic function initialization */
+	init_periodics();
+
 	/* running cli & daemon */
-	
 	dessert_cli_run();
 	dessert_run();
 	return (0);
