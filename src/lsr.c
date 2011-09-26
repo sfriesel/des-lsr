@@ -13,6 +13,7 @@ uint8_t  neighbor_lifetime = NEIGHBOR_LIFETIME;
 uint8_t  node_lifetime = NODE_LIFETIME;
 
 static void init_periodics() {
+	//TODO
 	#if 0
 	// registering periodic for HELLO packets
 	struct timeval hello_interval_t;
@@ -25,6 +26,7 @@ static void init_periodics() {
 	struct timeval tc_interval_timeval = { tc_interval / 1000, (tc_interval % 1000) * 1000};
 	periodic_send_tc = dessert_periodic_add(lsr_periodic_send_tc, NULL, NULL, &tc_interval_timeval);
 
+	//TODO
 	#if 0
 	// registering periodic for refreshing neighboring list
 	struct timeval refresh_neighbor_t;
@@ -32,6 +34,7 @@ static void init_periodics() {
 	refresh_neighbor_t.tv_usec = (neighbor_aging_interval % 1000) * 1000;
 	periodic_refresh_nh = dessert_periodic_add(refresh_list, NULL, NULL, &refresh_neighbor_t);
 
+	//TODO
 	// registering periodic for refreshing routing table
 	struct timeval refresh_rt_t;
 	refresh_rt_t.tv_sec = node_aging_interval / 1000;
@@ -55,6 +58,7 @@ int main (int argc, char *argv[]) {
 			return EXIT_FAILURE;
 		}
 	} else {
+		//FIXME dessert should parse it's options independent of position
 		cfg = dessert_cli_get_cfg(argc, argv);
 		dessert_info("starting LSR in daemonize mode");
 		dessert_init("LSR", 0x03, DESSERT_OPT_DAEMONIZE);
@@ -79,7 +83,7 @@ int main (int argc, char *argv[]) {
 	cli_file(dessert_cli, cfg, PRIVILEGE_PRIVILEGED, MODE_CONFIG);
 	
 	/* callback registration */
-	dessert_sysrxcb_add(dessert_msg_ifaceflags_cb_sys, 5);
+	//dessert_sysrxcb_add(dessert_msg_ifaceflags_cb_sys, 5);
 	dessert_sysrxcb_add(lsr_sys2mesh, 10);
 	
 	dessert_meshrxcb_add(dessert_msg_ifaceflags_cb, 10);
