@@ -28,6 +28,7 @@ dessert_per_result_t lsr_periodic_send_tc(void *data, struct timeval *scheduled,
 	dessert_msg_addext(tc, &ext, DESSERT_EXT_ETH, ETHER_HDR_LEN);
 	struct ether_header* l25h = (struct ether_header *) ext->data;
 	memcpy(l25h->ether_dhost, ether_broadcast, ETH_ALEN);
+	memcpy(l25h->ether_shost, dessert_l25_defsrc, ETH_ALEN);
 	
 	neighbor_info_t *neighbor_list;
 	int neighbor_count;
