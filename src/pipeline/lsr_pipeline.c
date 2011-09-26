@@ -95,7 +95,7 @@ dessert_cb_result_t lsr_forward_multicast(dessert_msg_t* msg, uint32_t len, dess
 
 dessert_cb_result_t lsr_forward_unicast(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
 	// if current node is the l2 destination of the message but message is not for the current node
-	if(proc->lflags & DESSERT_RX_FLAG_L25_DST || !proc->lflags & DESSERT_RX_FLAG_L2_DST) {
+	if(proc->lflags & DESSERT_RX_FLAG_L25_DST || !(proc->lflags & DESSERT_RX_FLAG_L2_DST)) {
 		return DESSERT_MSG_KEEP;
 	}
 	struct ether_header* l25h = dessert_msg_getl25ether(msg);
