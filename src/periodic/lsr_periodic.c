@@ -33,9 +33,8 @@ dessert_per_result_t lsr_periodic_send_tc(void *data, struct timeval *scheduled,
 	int neighbor_count;
 	lsr_db_dump_neighbor_table(&neighbor_list, &neighbor_count);
 	uint32_t ext_size = sizeof(tc_ext_t) * neighbor_count;
-	if(dessert_msg_addext(tc, &ext, LSR_EXT_TC, ext_size) != DESSERT_OK) {
+	if(dessert_msg_addext(tc, &ext, LSR_EXT_TC, ext_size) != DESSERT_OK)
 		dessert_notice("TC extension too big! This is an implementation bug");
-	}
 
 	// copy NH list into extension
 	tc_ext_t *tc_element = (tc_ext_t*) ext->data;
@@ -44,10 +43,11 @@ dessert_per_result_t lsr_periodic_send_tc(void *data, struct timeval *scheduled,
 		tc_element[i].lifetime = neighbor_list[i].lifetime;
 		tc_element[i].weight = neighbor_list[i].weight;
 	}
+	free(neighbor_list);
 
 	lsr_send_randomized(tc);
 	dessert_msg_destroy(tc);
-	return 0;
+	return DESSERT_PER_KEEP;
 }
 
 dessert_per_result_t age_neighbors(void *data, struct timeval *scheduled, struct timeval *interval) {

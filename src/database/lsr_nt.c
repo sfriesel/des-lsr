@@ -34,14 +34,16 @@ dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int
 		}
 	}
 	
-	edge_t *neighbor_edge;
+	edge_t *neighbor_edge, *tmp2, *tmp3;
 	neighbor_info_t *iter = *result = malloc(*neighbor_count * sizeof(neighbor_info_t));
 	
-	CDL_FOREACH(neighbors, neighbor_edge) {
+	CDL_FOREACH_SAFE(neighbors, neighbor_edge, tmp2, tmp3) {
 		memcpy(iter->addr, neighbor_edge->node->addr, ETH_ALEN);
 		iter->lifetime = neighbor_edge->lifetime;
 		iter->weight = neighbor_edge->weight;
 		iter++;
+		CDL_DELETE(tmp2, neighbor_edge);
+		free(neighbor_edge);
 	}
 	return DESSERT_OK;
 }

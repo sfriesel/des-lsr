@@ -22,8 +22,8 @@ static void init_periodics() {
 	#endif
 	
 	// registering periodic for TC packets
-	struct timeval tc_interval_t = { tc_interval / 1000, (tc_interval % 1000) * 1000};
-	periodic_send_tc = dessert_periodic_add(lsr_periodic_send_tc, NULL, NULL, &tc_interval_t);
+	struct timeval tc_interval_timeval = { tc_interval / 1000, (tc_interval % 1000) * 1000};
+	periodic_send_tc = dessert_periodic_add(lsr_periodic_send_tc, NULL, NULL, &tc_interval_timeval);
 
 	#if 0
 	// registering periodic for refreshing neighboring list
@@ -42,19 +42,20 @@ static void init_periodics() {
 
 // --- DAEMON INITIALIZATION --- //
 int main (int argc, char *argv[]) {
+	FILE *cfg;
 	/* initialize daemon with correct parameters */
-	FILE *cfg = dessert_cli_get_cfg(argc, argv);
 	if(argc > 1 && (strcmp(argv[1], "-nondaemonize") == 0)) {
 		dessert_info("starting LSR in non daemonize mode");
 		dessert_init("LSR", 0x03, DESSERT_OPT_NODAEMONIZE);
 		dessert_logcfg(DESSERT_LOG_STDERR);
-		char cfg_file_name[] = "/etc/des-lsr.conf";
+		char cfg_file_name[] = "des-lsr.cli";
 		cfg = fopen(cfg_file_name, "r");
 		if (cfg == NULL) {
 			printf("Config file '%s' not found. Exit... \n", cfg_file_name);
 			return EXIT_FAILURE;
 		}
 	} else {
+		cfg = dessert_cli_get_cfg(argc, argv);
 		dessert_info("starting LSR in daemonize mode");
 		dessert_init("LSR", 0x03, DESSERT_OPT_DAEMONIZE);
 	}
