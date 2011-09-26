@@ -78,9 +78,9 @@ bool lsr_tc_node_check_seq_nr(mac_addr node_addr, uint8_t seq_nr) {
 	if (!node) {
 		return false;
 	}
-	uint64_t base = node->seq_nr >> 8;
+	int64_t base = node->seq_nr >> 8;
 	
-	for(uint64_t guess = ((base - 1) << 8) + seq_nr; ; guess += UINT8_MAX + 1) {
+	for(int64_t guess = ((base - 1) << 8) + seq_nr; ; guess += UINT8_MAX + 1) {
 		if(abs(guess - node->seq_nr) < UINT8_MAX/2) {
 			if(guess <= node->seq_nr) {
 				return false;

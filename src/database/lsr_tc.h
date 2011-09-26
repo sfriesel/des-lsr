@@ -8,7 +8,7 @@ struct neighbor;
 typedef struct node {
 	mac_addr addr; //l2.5
 	struct neighbor *next_hop;
-	uint64_t seq_nr;
+	int64_t seq_nr;
 	struct edge *neighbors;
 	uint32_t lifetime;
 	uint32_t weight;
