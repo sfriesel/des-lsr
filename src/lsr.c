@@ -11,6 +11,7 @@ uint16_t neighbor_aging_interval = NEIGHBOR_AGING_INTERVAL;
 uint16_t node_aging_interval = NODE_AGING_INTERVAL;
 uint8_t  neighbor_lifetime = NEIGHBOR_LIFETIME;
 uint8_t  node_lifetime = NODE_LIFETIME;
+uint16_t rt_rebuild_interval = RT_REBUILD_INTERVAL;
 
 static void init_periodics() {
 	//TODO
@@ -25,6 +26,10 @@ static void init_periodics() {
 	// registering periodic for TC packets
 	struct timeval tc_interval_timeval = { tc_interval / 1000, (tc_interval % 1000) * 1000};
 	periodic_send_tc = dessert_periodic_add(lsr_periodic_send_tc, NULL, NULL, &tc_interval_timeval);
+	
+	struct timeval rt_rebuild_timeval = { rt_rebuild_interval / 1000, (rt_rebuild_interval % 1000) * 1000};
+	periodic_regenerate_rt = dessert_periodic_add(lsr_periodic_regenerate_rt, NULL, NULL, &rt_rebuild_timeval);
+	
 
 	//TODO
 	#if 0

@@ -69,7 +69,7 @@ dessert_cb_result_t lsr_process_tc(dessert_msg_t* msg, uint32_t len, dessert_msg
 // --- CALLBACK PIPELINE --- //
 dessert_cb_result_t lsr_drop_errors(dessert_msg_t* msg, uint32_t len,	dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
 	if(proc->lflags & DESSERT_RX_FLAG_L2_SRC || proc->lflags & DESSERT_RX_FLAG_L25_SRC) {
-		dessert_info("dropping packets sent to myself");
+		//dessert_info("dropping packets sent to myself");
 		return DESSERT_MSG_DROP;
 	}
 
@@ -109,7 +109,7 @@ dessert_cb_result_t lsr_forward_unicast(dessert_msg_t* msg, uint32_t len, desser
 		lsr_send(msg, out_iface);
 	}
 	else {
-		dessert_trace("no route to dest " MAC, EXPLODE_ARRAY6(l25h->ether_dhost));
+		dessert_debug("no route to dest " MAC, EXPLODE_ARRAY6(l25h->ether_dhost));
 	}
 
 	return DESSERT_MSG_DROP;
@@ -133,23 +133,30 @@ dessert_cb_result_t lsr_unhandled(dessert_msg_t* msg, uint32_t len, dessert_msg_
 
 dessert_cb_result_t lsr_sys2mesh(dessert_msg_t *msg, uint32_t len, dessert_msg_proc_t *proc, dessert_sysif_t *sysif, dessert_frameid_t id) {
 	struct ether_header* l25h = dessert_msg_getl25ether(msg);
-	msg->u16 = lsr_db_data_get_seq_nr();
+	msg->ttl = TTL_MAX;
+	msg->u16 = htons(lsr_db_data_get_seq_nr());
 	
-	if(proc->lflags & (DESSERT_RX_FLAG_L25_BROADCAST | DESSERT_RX_FLAG_L25_MULTICAST)) {
+	if(proc->lflags & DESSERT_RX_FLAG_L25_MULTICAST) {
 		memcpy(msg->l2h.ether_dhost, ether_broadcast, ETH_ALEN);
-		lsr_send_randomized(msg);
+		dessert_result_t result = lsr_send_randomized(msg);
+		if(result != DESSERT_OK) {
+			dessert_crit("error while trying to send multicast");
+		}
 	}
 	else {
 		dessert_meshif_t *out_iface;
 		mac_addr next_hop;
-		dessert_result_t result = lsr_db_get_next_hop(l25h->ether_shost, &next_hop, &out_iface);
+		dessert_result_t result = lsr_db_get_next_hop(l25h->ether_dhost, &next_hop, &out_iface);
 		
 		if(result == DESSERT_OK) {
 			memcpy(msg->l2h.ether_dhost, next_hop, ETH_ALEN);
-			lsr_send(msg, out_iface);
+			dessert_result_t result = lsr_send(msg, out_iface);
+			if(result != DESSERT_OK) {
+				dessert_crit("error while trying to send unicast");
+			}
 		}
 		else {
-			dessert_trace("no route to dest " MAC, EXPLODE_ARRAY6(l25h->ether_dhost));
+			dessert_info("no route to dest " MAC, EXPLODE_ARRAY6(l25h->ether_dhost));
 		}
 	}
 	return DESSERT_MSG_DROP;

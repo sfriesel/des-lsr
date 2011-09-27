@@ -88,8 +88,10 @@ dessert_result_t lsr_nt_age_all(void) {
  */
 dessert_result_t lsr_nt_set_neighbor_weights(void) {
 	for(neighbor_t *neighbor = nt; neighbor; neighbor = neighbor->hh.next) {
-		if(neighbor->weight < neighbor->node->weight)
+		if(neighbor->weight < neighbor->node->weight) {
+			neighbor->node->next_hop = neighbor;
 			neighbor->node->weight = neighbor->weight;
+		}
 	}
 	return DESSERT_OK;
 }

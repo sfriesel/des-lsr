@@ -25,5 +25,6 @@ extern uint16_t neighbor_aging_interval;
 extern uint16_t node_aging_interval;
 extern uint8_t  neighbor_lifetime;
 extern uint8_t  node_lifetime;
+extern uint16_t rt_rebuild_interval;
 
 #endif

@@ -29,7 +29,7 @@ node_t *lsr_tc_get_node(mac_addr node_addr);
 node_t *lsr_tc_get_or_create_node(mac_addr addr);
 bool lsr_tc_node_check_seq_nr(mac_addr node_addr, uint8_t seq_nr);
 dessert_result_t lsr_tc_age_all(void);
-
+dessert_result_t lsr_tc_dijkstra(void);
 edge_t *lsr_create_edge(node_t *target, uint32_t lifetime, uint32_t weight);
 
 #endif

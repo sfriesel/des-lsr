@@ -9,6 +9,7 @@ dessert_periodic_t *periodic_send_hello;
 dessert_periodic_t *periodic_send_tc;
 dessert_periodic_t *periodic_refresh_nh;
 dessert_periodic_t *periodic_refresh_rt;
+dessert_periodic_t *periodic_regenerate_rt;
 
 typedef struct tc_ext {
 	mac_addr addr;
@@ -48,6 +49,11 @@ dessert_per_result_t lsr_periodic_send_tc(void *data, struct timeval *scheduled,
 
 	lsr_send_randomized(tc);
 	dessert_msg_destroy(tc);
+	return DESSERT_PER_KEEP;
+}
+
+dessert_per_result_t lsr_periodic_regenerate_rt(void *data, struct timeval *scheduled, struct timeval *interval) {
+	lsr_db_rt_regenerate();
 	return DESSERT_PER_KEEP;
 }
 
