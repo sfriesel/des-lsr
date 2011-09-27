@@ -30,8 +30,8 @@ dessert_per_result_t lsr_periodic_send_tc(void *data, struct timeval *scheduled,
 	memcpy(l25h->ether_dhost, ether_broadcast, ETH_ALEN);
 	memcpy(l25h->ether_shost, dessert_l25_defsrc, ETH_ALEN);
 	
-	neighbor_info_t *neighbor_list;
-	int neighbor_count;
+	neighbor_info_t *neighbor_list = NULL;
+	int neighbor_count = 0;
 	lsr_db_dump_neighbor_table(&neighbor_list, &neighbor_count);
 	uint32_t ext_size = sizeof(tc_ext_t) * neighbor_count;
 	if(dessert_msg_addext(tc, &ext, LSR_EXT_TC, ext_size) != DESSERT_OK)

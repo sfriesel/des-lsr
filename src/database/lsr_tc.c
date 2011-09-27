@@ -76,7 +76,7 @@ bool lsr_tc_node_check_seq_nr(mac_addr node_addr, uint8_t seq_nr) {
 	node_t *node = NULL;
 	HASH_FIND(hh, node_set, node_addr, ETH_ALEN, node);
 	if (!node) {
-		return false;
+		return true;
 	}
 	int64_t base = node->seq_nr >> 8;
 	

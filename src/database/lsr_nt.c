@@ -14,7 +14,7 @@ dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int
 	*neighbor_count = 0;
 	neighbor_t *neighbor, *tmp;
 	HASH_ITER(hh, nt, neighbor, tmp) {
-		edge_t *neighbor_edge;
+		edge_t *neighbor_edge = NULL;
 		CDL_FOREACH(neighbors, neighbor_edge) {
 			if(neighbor->node == neighbor_edge->node) {
 				if(neighbor->weight < neighbor_edge->weight) {
@@ -42,7 +42,7 @@ dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int
 		iter->lifetime = neighbor_edge->lifetime;
 		iter->weight = neighbor_edge->weight;
 		iter++;
-		CDL_DELETE(tmp2, neighbor_edge);
+		CDL_DELETE(neighbors, neighbor_edge);
 		free(neighbor_edge);
 	}
 	return DESSERT_OK;

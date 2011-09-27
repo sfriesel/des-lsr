@@ -47,7 +47,7 @@ static void init_periodics() {
 int main (int argc, char *argv[]) {
 	FILE *cfg;
 	/* initialize daemon with correct parameters */
-	if(argc > 1 && (strcmp(argv[1], "-nondaemonize") == 0)) {
+	if(argc > 1 && (strcmp(argv[1], "-d") == 0)) {
 		dessert_info("starting LSR in non daemonize mode");
 		dessert_init("LSR", 0x03, DESSERT_OPT_NODAEMONIZE);
 		dessert_logcfg(DESSERT_LOG_STDERR);
