@@ -83,7 +83,7 @@ int main (int argc, char *argv[]) {
 	cli_file(dessert_cli, cfg, PRIVILEGE_PRIVILEGED, MODE_CONFIG);
 	
 	/* callback registration */
-	//dessert_sysrxcb_add(dessert_msg_ifaceflags_cb_sys, 5);
+	dessert_sysrxcb_add(dessert_msg_ifaceflags_cb_sys, 5);
 	dessert_sysrxcb_add(lsr_sys2mesh, 10);
 	
 	dessert_meshrxcb_add(dessert_msg_ifaceflags_cb, 10);
