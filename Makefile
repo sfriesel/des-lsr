@@ -18,8 +18,8 @@ FILE_DEFAULT = etc/$(DAEMONNAME).default
 FILE_ETC = etc/$(DAEMONNAME).conf
 FILE_INIT = etc/$(DAEMONNAME).init
 
-LIBS = dessert pthread cli
-CFLAGS += -std=gnu99 -O0 -g -W -Wall -Wextra -Wno-unused-parameter -pedantic -Werror -DTARGET_$(UNAME) -D_GNU_SOURCE
+LIBS = dessert pthread cli pcap z
+CFLAGS += -std=gnu99 -O2 -g -W -Wall -Wextra -Wno-unused-parameter -pedantic -Werror -DTARGET_$(UNAME) -D_GNU_SOURCE
 LDFLAGS += $(addprefix -l,$(LIBS))
 
 all: build
@@ -41,7 +41,7 @@ install:
 	install -m 755 $(FILE_INIT) $(DIR_INIT)/$(DAEMONNAME)
 
 build: $(addsuffix .o,$(MODULES))
-	$(CC) $(LDFLAGS) -o $(DAEMONNAME) $(addsuffix .o,$(MODULES))
+	$(CC)  -o $(DAEMONNAME) $(addsuffix .o,$(MODULES)) $(LDFLAGS)
 
 android: CC=android-gcc
 android: CFLAGS=-I$(DESSERT_LIB)/include
