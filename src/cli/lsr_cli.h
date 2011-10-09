@@ -11,5 +11,6 @@ int cli_show_refresh_list(struct cli_def* cli, char* command, char* argv[], int 
 int cli_set_refresh_rt(struct cli_def* cli, char* command, char* argv[], int argc);
 int cli_show_refresh_rt(struct cli_def* cli, char* command, char* argv[], int argc);
 int cli_show_rt(struct cli_def* cli, char* command, char* argv[], int argc);
+int cli_show_nt(struct cli_def* cli, char* command, char* argv[], int argc);
 
 #endif

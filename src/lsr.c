@@ -84,6 +84,7 @@ int main (int argc, char *argv[]) {
 	cli_register_command(dessert_cli, cli_cfg_set, "refresh_rt", cli_set_refresh_rt, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "set refresh RT interval");
 	cli_register_command(dessert_cli, dessert_cli_show, "refresh_rt", cli_show_refresh_rt, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, "show refresh RT interval");
 	cli_register_command(dessert_cli, dessert_cli_show, "rt", cli_show_rt, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, "show RT");
+	cli_register_command(dessert_cli, dessert_cli_show, "nt", cli_show_nt, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, "show NT");
 	
 	cli_file(dessert_cli, cfg, PRIVILEGE_PRIVILEGED, MODE_CONFIG);
 	
