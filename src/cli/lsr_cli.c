@@ -1,6 +1,7 @@
 #include "lsr_cli.h"
 #include "../lsr_config.h"
 #include "../periodic/lsr_periodic.h"
+#include "../database/lsr_database.h"
 
 int cli_set_hello_interval(struct cli_def *cli, char *command, char *argv[], int argc) {
 	if(argc != 1) {
@@ -127,24 +128,23 @@ int cli_show_node_lifetime(struct cli_def *cli, char *command, char *argv[], int
 }
 
 int cli_show_rt(struct cli_def *cli, char *command, char *argv[], int argc) {
-	#if 0
-	all_nodes_t *node = all_nodes_head;
+	//FIXME
+	return CLI_OK;
+}
 
-	if (!node) {
-		return CLI_OK;
+int cli_show_nt(struct cli_def *cli, char *command, char *argv[], int argc) {
+	neighbor_info_t *neighbor_list = NULL;
+	int neighbor_count = 0;
+	lsr_db_dump_neighbor_table(&neighbor_list, &neighbor_count);
+
+	cli_print(cli,  "#######################################################");
+	cli_print(cli,  "## NEIGHBOR L25                 # WEIGHT  # LIFETIME ##");
+	cli_print(cli,  "#######################################################");
+
+	for(int i = 0; i < neighbor_count; ++i) {
+		cli_print(cli, "## " MAC "\t# %d\t# %d",
+				EXPLODE_ARRAY6(neighbor_list[i].addr), neighbor_list[i].weight, neighbor_list[i].lifetime);
 	}
 
-	cli_print(cli,  "##############################################################################################");
-	cli_print(cli,  "## MAC                  # NEXT HOP                # SEQ NR        # ENTRY AGE ##");
-	cli_print(cli,  "##############################################################################################");
-
-	while (node) {
-		cli_print(cli, "## " MAC "\t# " MAC "\t# %d\t\t# %d\t    ##\t",
-				EXPLODE_ARRAY6(node->addr), EXPLODE_ARRAY6(node->next_hop), node->seq_nr, node->entry_age);
-		node = node->hh.next;
-	}
-
-	cli_print(cli, "##############################################################################################");
-	#endif
 	return CLI_OK;
 }
