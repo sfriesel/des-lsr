@@ -4,7 +4,7 @@
 #include "../lsr_config.h"
 #include <pthread.h>
 
-pthread_rwlock_t db_lock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_rwlock_t db_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 uint64_t tc_seq_nr = 0;
 uint64_t data_seq_nr = 0;
