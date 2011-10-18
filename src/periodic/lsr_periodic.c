@@ -17,11 +17,12 @@ typedef struct tc_ext {
 	uint8_t weight;
 } __attribute__((__packed__)) tc_ext_t;
 
-dessert_per_result_t lsr_periodic_send_tc(void *data, struct timeval *scheduled, struct timeval *interval) {
+dessert_per_result_t _lsr_periodic_send_tc_with_ttl(uint8_t ttl) {
 	dessert_msg_t *tc;
 	dessert_msg_new(&tc);
-	tc->ttl = TTL_MAX;
-	tc->u8 = lsr_db_tc_get_seq_nr();
+	tc->ttl = ttl;
+	tc->u8  = 0;
+	tc->u16 = (uint16_t) lsr_db_tc_get_seq_nr();
 	
 	dessert_ext_t *ext;
 	
@@ -50,6 +51,14 @@ dessert_per_result_t lsr_periodic_send_tc(void *data, struct timeval *scheduled,
 	lsr_send_randomized(tc);
 	dessert_msg_destroy(tc);
 	return DESSERT_PER_KEEP;
+}
+
+dessert_per_result_t lsr_periodic_send_hello(void *data, struct timeval *scheduled, struct timeval *interval) {
+	return _lsr_periodic_send_tc_with_ttl(1);
+}
+
+dessert_per_result_t lsr_periodic_send_tc(void *data, struct timeval *scheduled, struct timeval *interval) {
+	return _lsr_periodic_send_tc_with_ttl(LSR_TTL_MAX);
 }
 
 dessert_per_result_t lsr_periodic_regenerate_rt(void *data, struct timeval *scheduled, struct timeval *interval) {

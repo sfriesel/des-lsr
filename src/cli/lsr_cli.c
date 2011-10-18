@@ -9,15 +9,13 @@ int cli_set_hello_interval(struct cli_def *cli, char *command, char *argv[], int
 		return CLI_ERROR;
 	}
 
-	#if 0
 	hello_interval = (uint16_t) strtoul(argv[0], NULL, 10);
 	dessert_periodic_del(periodic_send_hello);
 	struct timeval hello_interval_t;
 	hello_interval_t.tv_sec = hello_interval / 1000;
 	hello_interval_t.tv_usec = (hello_interval % 1000) * 1000;
-	periodic_send_hello = dessert_periodic_add(send_hello, NULL, NULL, &hello_interval_t);
+	periodic_send_hello = dessert_periodic_add(lsr_periodic_send_hello, NULL, NULL, &hello_interval_t);
 	dessert_notice("setting HELLO interval to %d ms\n", hello_interval);
-	#endif
 	return CLI_OK;
 }
 

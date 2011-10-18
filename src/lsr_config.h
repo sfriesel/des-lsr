@@ -17,7 +17,7 @@
 #define NODE_LIFETIME       32
 #define DEFAULT_WEIGHT      1
 
-#define TTL_MAX             UINT8_MAX
+#define LSR_TTL_MAX             UINT8_MAX
 
 extern uint16_t tc_interval;
 extern uint16_t hello_interval;
