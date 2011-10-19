@@ -44,11 +44,6 @@ dessert_cb_result_t lsr_process_tc(dessert_msg_t* msg, uint32_t len, dessert_msg
 	}
 
 	struct ether_header* l25h = dessert_msg_getl25ether(msg);
-	
-	if(!lsr_db_tc_check_seq_nr(l25h->ether_shost, ntohs(msg->u16))) {
-		return DESSERT_MSG_DROP;
-	}
-
 	//if tc travelled exactly one hop, also handle as hello packet
 	if(msg->u8 == 1) {
 		lsr_db_nt_update(msg->l2h.ether_shost, l25h->ether_shost, iface, ntohs(msg->u16));
@@ -68,10 +63,22 @@ dessert_cb_result_t lsr_process_tc(dessert_msg_t* msg, uint32_t len, dessert_msg
 }
 
 // --- CALLBACK PIPELINE --- //
-dessert_cb_result_t lsr_drop_errors(dessert_msg_t* msg, uint32_t len,	dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
+dessert_cb_result_t lsr_drop_errors(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
 	if(proc->lflags.l2_src || proc->lflags.l25_src) {
 		//dessert_info("dropping packets sent to myself");
 		return DESSERT_MSG_DROP;
+	}
+	
+	struct ether_header* l25h = dessert_msg_getl25ether(msg);
+	
+	if(proc->lflags.l25_multicast) {
+		if(!lsr_db_broadcast_check_seq_nr(l25h->ether_shost, ntohs(msg->u16))) {
+			return DESSERT_MSG_DROP;
+		}
+	} else {
+		if(!lsr_db_unicast_check_seq_nr(l25h->ether_shost, ntohs(msg->u16))) {
+			return DESSERT_MSG_DROP;
+		}
 	}
 
 	return DESSERT_MSG_KEEP;
@@ -83,10 +90,6 @@ dessert_cb_result_t lsr_forward_multicast(dessert_msg_t* msg, uint32_t len, dess
 		return DESSERT_MSG_KEEP;
 	}
 	
-	struct ether_header* l25h = dessert_msg_getl25ether(msg);
-	if(!lsr_db_data_check_seq_nr(l25h->ether_shost, ntohs(msg->u16))) {
-		return DESSERT_MSG_DROP;
-	}
 	//msg is now de-duplicated
 	lsr_send_randomized(msg);
 	return DESSERT_MSG_KEEP;
@@ -135,9 +138,10 @@ dessert_cb_result_t lsr_unhandled(dessert_msg_t* msg, uint32_t len, dessert_msg_
 dessert_cb_result_t lsr_sys2mesh(dessert_msg_t *msg, uint32_t len, dessert_msg_proc_t *proc, dessert_sysif_t *sysif, dessert_frameid_t id) {
 	struct ether_header* l25h = dessert_msg_getl25ether(msg);
 	msg->ttl = LSR_TTL_MAX;
-	msg->u16 = htons(lsr_db_data_get_seq_nr());
+	
 	
 	if(proc->lflags.l25_multicast) {
+		msg->u16 = htons(lsr_db_broadcast_get_seq_nr());
 		memcpy(msg->l2h.ether_dhost, ether_broadcast, ETH_ALEN);
 		dessert_result_t result = lsr_send_randomized(msg);
 		if(result != DESSERT_OK) {
@@ -145,6 +149,7 @@ dessert_cb_result_t lsr_sys2mesh(dessert_msg_t *msg, uint32_t len, dessert_msg_p
 		}
 	}
 	else {
+		msg->u16 = htons(lsr_db_unicast_get_seq_nr());
 		dessert_meshif_t *out_iface;
 		mac_addr next_hop;
 		dessert_result_t result = lsr_db_get_next_hop(l25h->ether_dhost, &next_hop, &out_iface);

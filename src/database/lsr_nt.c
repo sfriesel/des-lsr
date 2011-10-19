@@ -48,7 +48,7 @@ dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int
 	return DESSERT_OK;
 }
 
-dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint8_t seq_nr, uint8_t weight) {
+dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint16_t seq_nr, uint8_t weight) {
 	node_t *node = lsr_tc_get_or_create_node(neighbor_l25);
 	
 	neighbor_t *neighbor = NULL;

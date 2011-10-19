@@ -4,6 +4,7 @@
 #include <utlist.h>
 
 #define INFINITE_WEIGHT UINT32_MAX
+static const uint64_t SEQ_NR_THRESHOLD = 500;
 
 //the set of all currently known nodes
 static node_t *node_set = NULL;
@@ -39,7 +40,7 @@ node_t *lsr_tc_get_or_create_node(mac_addr addr) {
 	return node;
 }
 
-dessert_result_t lsr_tc_update_node(mac_addr node_addr, uint8_t seq_nr) {
+dessert_result_t lsr_tc_update_node(mac_addr node_addr, uint16_t seq_nr) {
 	node_t *node = lsr_tc_get_or_create_node(node_addr);
 	node->lifetime = NEIGHBOR_LIFETIME;
 	node->weight = DEFAULT_WEIGHT;
@@ -72,24 +73,71 @@ dessert_result_t lsr_tc_update_node_neighbor(mac_addr node_addr, mac_addr neighb
 	return DESSERT_OK;
 }
 
-bool lsr_tc_node_check_seq_nr(mac_addr node_addr, uint8_t seq_nr) {
-	node_t *node = NULL;
-	HASH_FIND(hh, node_set, node_addr, ETH_ALEN, node);
+uint64_t _guess_seq_nr(uint64_t old, uint16_t new) {
+	uint64_t guess = ((old >> 16 - 1) << 16) + new;
+	while(guess < old - min(old, SEQ_NR_THRESHOLD)) {
+		guess += UINT16_MAX + 1;
+	}
+	return guess;
+}
+
+void _split_gap(struct seq_interval *gaps, uint64_t x, int index) {
+	if(x == gaps[index].start) {
+		gaps[index].start = x + 1;
+		return;
+	}
+	if(x == gaps[index].end - 1) {
+		gaps[index].end = x;
+		return;
+	}
+	
+	int insert_index = 0;
+	for(int i = 0; i < GAP_COUNT; ++i) {
+		if(gaps[i].start == gaps[i].end) {
+			insert_index = i;
+			break;
+		}
+		if(gaps[i].start < gaps[insert_index].start) {
+			insert_index = i;
+		}
+	}
+	
+	gaps[insert_index].start = gaps[index].start;
+	gaps[insert_index].end = x;
+	gaps[index].start = x + 1;
+}
+
+bool _lsr_tc_node_check_seq_nr(uint64_t *old, struct seq_interval *gaps, uint16_t seq_nr) {
+	uint64_t guess = _guess_seq_nr(*old, seq_nr);
+	if(guess > *old) {
+		*old = guess;
+		return true;
+	}
+	for(int i = 0; i < GAP_COUNT; ++i) {
+		if(gaps[i].start <= guess && gaps[i].end > guess) {
+			_split_gap(gaps, guess, i);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool lsr_tc_node_check_broadcast_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
+	node_t *node = lsr_tc_get_node(node_addr);
 	if (!node) {
 		return true;
 	}
-	int64_t base = node->seq_nr >> 8;
 	
-	for(int64_t guess = ((base - 1) << 8) + seq_nr; ; guess += UINT8_MAX + 1) {
-		if(abs(guess - node->seq_nr) < UINT8_MAX/2) {
-			if(guess <= node->seq_nr) {
-				return false;
-			} else {
-				node->seq_nr = guess;
-				return true;
-			}
-		}
+	return _lsr_tc_node_check_seq_nr(&(node->broadcast_seq_nr), node->broadcast_gaps, seq_nr);
+}
+
+bool lsr_tc_node_check_unicast_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
+	node_t *node = lsr_tc_get_node(node_addr);
+	if (!node) {
+		return true;
 	}
+	
+	return _lsr_tc_node_check_seq_nr(&(node->unicast_seq_nr), node->unicast_gaps, seq_nr);
 }
 
 dessert_result_t lsr_tc_get_next_hop(mac_addr dest_addr, mac_addr *next_hop, dessert_meshif_t **iface) {
