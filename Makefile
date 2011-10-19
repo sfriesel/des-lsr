@@ -19,7 +19,7 @@ FILE_ETC = etc/$(DAEMONNAME).conf
 FILE_INIT = etc/$(DAEMONNAME).init
 
 LIBS = dessert pthread cli pcap z
-CFLAGS += -std=gnu99 -O2 -g -W -Wall -Wextra -Wno-unused-parameter -Werror -DTARGET_$(UNAME) -D_GNU_SOURCE
+CFLAGS += -Wall -Wextra -Wno-unused-parameter -Werror -Wfatal-errors -std=gnu99 -O2 -g -DTARGET_$(UNAME) -D_GNU_SOURCE
 LDFLAGS += $(addprefix -l,$(LIBS))
 
 all: build
@@ -40,8 +40,10 @@ install:
 	mkdir -p $(DIR_INIT)
 	install -m 755 $(FILE_INIT) $(DIR_INIT)/$(DAEMONNAME)
 
-build: $(addsuffix .o,$(MODULES))
-	$(CC)  -o $(DAEMONNAME) $(addsuffix .o,$(MODULES)) $(LDFLAGS)
+build: $(DAEMONNAME)
+
+$(DAEMONNAME): $(addsuffix .c,$(MODULES))
+	$(CC)  $(CFLAGS) -o $(DAEMONNAME) $(addsuffix .c,$(MODULES)) $(LDFLAGS)
 
 android: CC=android-gcc
 android: CFLAGS=-I$(DESSERT_LIB)/include
