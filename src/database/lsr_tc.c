@@ -3,12 +3,10 @@
 #include "../lsr_config.h"
 #include <utlist.h>
 
-#define INFINITE_WEIGHT UINT32_MAX
-static const uint64_t SEQ_NR_THRESHOLD = 500;
-
 //the set of all currently known nodes
 static node_t *node_set = NULL;
 
+#if 0
 edge_t *lsr_create_edge(node_t *target, uint32_t lifetime, uint32_t weight) {
 	edge_t *edge = malloc(sizeof(edge_t));
 	edge->node = target;
@@ -16,12 +14,10 @@ edge_t *lsr_create_edge(node_t *target, uint32_t lifetime, uint32_t weight) {
 	edge->weight = weight;
 	return edge;
 }
+#endif
 
 node_t *lsr_tc_create_node(mac_addr addr) {
-	node_t *node = malloc(sizeof(node_t));
-	memset(node, 0, sizeof(node_t));
-	node->next_hop = NULL;
-	memcpy(node->addr, addr, ETH_ALEN);
+	node_t *node = lsr_node_new(addr);
 	HASH_ADD_KEYPTR(hh, node_set, node->addr, ETH_ALEN, node);
 	return node;
 }
@@ -40,104 +36,43 @@ node_t *lsr_tc_get_or_create_node(mac_addr addr) {
 	return node;
 }
 
-dessert_result_t lsr_tc_update_node(mac_addr node_addr, uint16_t seq_nr) {
-	node_t *node = lsr_tc_get_or_create_node(node_addr);
-	node->lifetime = NEIGHBOR_LIFETIME;
-	node->weight = DEFAULT_WEIGHT;
-	
-	return DESSERT_OK;
+struct timeval lsr_tc_calc_timeout(uint8_t lifetime) {
+	uint32_t lifetime_ms = lifetime * tc_interval;
+	struct timeval timeout;
+	gettimeofday(&timeout, NULL);
+	dessert_timevaladd(&timeout, lifetime_ms / 1000, (lifetime_ms % 1000) * 1000);
+	return timeout;
 }
 
-int lsr_tc_node_cmp(node_t *left, node_t *right) {
-	return memcmp(left->addr, right->addr, ETH_ALEN);
+dessert_result_t lsr_tc_update_node(mac_addr node_addr, uint16_t seq_nr) {
+	node_t *node = lsr_tc_get_or_create_node(node_addr);
+	lsr_node_set_timeout(node, lsr_tc_calc_timeout(node_lifetime));
+	
+	return DESSERT_OK;
 }
 
 dessert_result_t lsr_tc_update_node_neighbor(mac_addr node_addr, mac_addr neighbor_addr, uint8_t lifetime, uint8_t weight) {
 	node_t *node = lsr_tc_get_or_create_node(node_addr);
 	
-	edge_t *edge = NULL;
-	CDL_FOREACH(node->neighbors, edge) {
-		if(mac_equal(edge->node->addr, neighbor_addr)) {
-			break;
-		}
-	}
-	if(!edge) {
-		node_t *neighbor = lsr_tc_get_or_create_node(neighbor_addr);
-		edge = lsr_create_edge(neighbor, NEIGHBOR_LIFETIME, DEFAULT_WEIGHT);
-		CDL_PREPEND(node->neighbors, edge);
-	}
-	else {
-		edge->lifetime = NEIGHBOR_LIFETIME;
-		edge->weight = DEFAULT_WEIGHT;
-	}
+	lsr_node_update_neighbor(node, neighbor_addr, lsr_tc_calc_timeout(lifetime), weight);
+	
 	return DESSERT_OK;
 }
 
-uint64_t _guess_seq_nr(uint64_t old, uint16_t new) {
-	uint64_t guess = ((old >> 16 - 1) << 16) + new;
-	while(guess < old - min(old, SEQ_NR_THRESHOLD)) {
-		guess += UINT16_MAX + 1;
-	}
-	return guess;
-}
-
-void _split_gap(struct seq_interval *gaps, uint64_t x, int index) {
-	if(x == gaps[index].start) {
-		gaps[index].start = x + 1;
-		return;
-	}
-	if(x == gaps[index].end - 1) {
-		gaps[index].end = x;
-		return;
-	}
-	
-	int insert_index = 0;
-	for(int i = 0; i < GAP_COUNT; ++i) {
-		if(gaps[i].start == gaps[i].end) {
-			insert_index = i;
-			break;
-		}
-		if(gaps[i].start < gaps[insert_index].start) {
-			insert_index = i;
-		}
-	}
-	
-	gaps[insert_index].start = gaps[index].start;
-	gaps[insert_index].end = x;
-	gaps[index].start = x + 1;
-}
-
-bool _lsr_tc_node_check_seq_nr(uint64_t *old, struct seq_interval *gaps, uint16_t seq_nr) {
-	uint64_t guess = _guess_seq_nr(*old, seq_nr);
-	if(guess > *old) {
-		*old = guess;
-		return true;
-	}
-	for(int i = 0; i < GAP_COUNT; ++i) {
-		if(gaps[i].start <= guess && gaps[i].end > guess) {
-			_split_gap(gaps, guess, i);
-			return true;
-		}
-	}
-	return false;
-}
-
-bool lsr_tc_node_check_broadcast_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
+bool lsr_tc_check_unicast_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
 	node_t *node = lsr_tc_get_node(node_addr);
 	if (!node) {
 		return true;
 	}
-	
-	return _lsr_tc_node_check_seq_nr(&(node->broadcast_seq_nr), node->broadcast_gaps, seq_nr);
+	return lsr_node_check_unicast_seq_nr(node, seq_nr);
 }
 
-bool lsr_tc_node_check_unicast_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
+bool lsr_tc_check_broadcast_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
 	node_t *node = lsr_tc_get_node(node_addr);
 	if (!node) {
 		return true;
 	}
-	
-	return _lsr_tc_node_check_seq_nr(&(node->unicast_seq_nr), node->unicast_gaps, seq_nr);
+	return lsr_node_check_broadcast_seq_nr(node, seq_nr);
 }
 
 dessert_result_t lsr_tc_get_next_hop(mac_addr dest_addr, mac_addr *next_hop, dessert_meshif_t **iface) {
@@ -152,28 +87,23 @@ dessert_result_t lsr_tc_get_next_hop(mac_addr dest_addr, mac_addr *next_hop, des
 	return DESSERT_OK;
 }
 
-dessert_result_t lsr_tc_age(node_t *node) {
-	if(node->lifetime)
-		node->lifetime--;
+dessert_result_t lsr_tc_node_age(node_t *node, const struct timeval *now) {
 	// if node has no next_hop, it's not referenced
 	// as neighbor of any reachable node
-	if(!node->lifetime && !node->next_hop) {
-		if(node->neighbors) {
-			edge_t *tmp1, *tmp2, *edge;
-			CDL_FOREACH_SAFE(node->neighbors, edge, tmp1, tmp2) {
-				CDL_DELETE(node->neighbors, edge);
-				free(edge);
-			}
-		}
+	if(dessert_timevalcmp(now, &node->timeout) < 0 && !node->next_hop) {
 		HASH_DEL(node_set, node);
-		free(node);
+		lsr_node_delete(node);
 	}
 	return DESSERT_OK;
 }
 
 dessert_result_t lsr_tc_age_all(void) {
-	for(node_t *node = node_set; node; node = node->hh.next)
-		lsr_tc_age(node);
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	node_t *node, *tmp;
+	HASH_ITER(hh, node_set, node, tmp) {
+		lsr_tc_node_age(node, &now);
+	}
 	return DESSERT_OK;
 }
 
@@ -221,8 +151,8 @@ dessert_result_t lsr_tc_dijkstra() {
 	}
 	node_t *current_node;
 	while((current_node = priority_queue_poll(&queue))) {
-		edge_t *neighbor_edge;
-		CDL_FOREACH(current_node->neighbors, neighbor_edge) {
+		for(int i = 0; i < current_node->neighbor_count; ++i) {
+			edge_t *neighbor_edge = current_node->neighbors + i;
 			node_t * neighbor_node = neighbor_edge->node;
 			uint32_t dist = current_node->weight + neighbor_edge->weight;
 			if(neighbor_node->weight > dist) {

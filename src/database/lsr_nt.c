@@ -7,45 +7,56 @@
 // neighbor table; hash map of all neighboring l2 interfaces
 static neighbor_t *nt = NULL;
 
+int16_t _timeout2lifetime(struct timeval *timeout, struct timeval *now) {
+	if(dessert_timevalcmp(timeout, now) < 0)
+		return -1;
+	uint64_t diff = dessert_timeval2ms(timeout) - dessert_timeval2ms(now);
+	return diff / tc_interval;
+}
+
 dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int * const neighbor_count) {
 	// circular list of edges pointing to l25 neighbor nodes
-	edge_t *neighbors = NULL;
+	neighbor_info_t *out = NULL;
+	int out_used = 0;
+	int out_size = 0;
 	
 	*neighbor_count = 0;
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	
 	neighbor_t *neighbor, *tmp;
 	HASH_ITER(hh, nt, neighbor, tmp) {
-		edge_t *neighbor_edge = NULL;
-		CDL_FOREACH(neighbors, neighbor_edge) {
-			if(neighbor->node == neighbor_edge->node) {
-				if(neighbor->weight < neighbor_edge->weight) {
-					neighbor_edge->weight = neighbor->weight;
-					neighbor_edge->lifetime = neighbor->lifetime;
-				}
+		int16_t lifetime = _timeout2lifetime(&neighbor->timeout, &now);
+		if(lifetime < 0) {
+			continue;
+		}
+		int j;
+		for(j = 0; j < out_used; ++j) {
+			if(mac_equal(neighbor->node->addr, out[j].addr) && neighbor->weight < out[j].weight) {
 				break;
 			}
 		}
-		if(!neighbor_edge) {
-			neighbor_edge = malloc(sizeof(edge_t));
-			neighbor_edge->weight = neighbor->weight;
-			neighbor_edge->lifetime = neighbor->lifetime;
-			neighbor_edge->node = neighbor->node;
-			CDL_PREPEND(neighbors, neighbor_edge);
-			++(*neighbor_count);
+		if(j >= out_used) {
+			out_used++;
+			if(out_used >= out_size) {
+				out = realloc(out, out_size *= 2);
+			}
 		}
+		mac_copy(out[j].addr, neighbor->node->addr);
+		out[j].lifetime = lifetime;
+		out[j].weight = neighbor->weight;
 	}
+	*neighbor_count = out_used;
 	
-	edge_t *neighbor_edge, *tmp2, *tmp3;
-	neighbor_info_t *iter = *result = malloc(*neighbor_count * sizeof(neighbor_info_t));
-	
-	CDL_FOREACH_SAFE(neighbors, neighbor_edge, tmp2, tmp3) {
-		memcpy(iter->addr, neighbor_edge->node->addr, ETH_ALEN);
-		iter->lifetime = neighbor_edge->lifetime;
-		iter->weight = neighbor_edge->weight;
-		iter++;
-		CDL_DELETE(neighbors, neighbor_edge);
-		free(neighbor_edge);
-	}
 	return DESSERT_OK;
+}
+
+struct timeval lsr_nt_calc_timeout(void) {
+	uint32_t lifetime_ms = neighbor_lifetime * hello_interval;
+	struct timeval timeout;
+	gettimeofday(&timeout, NULL);
+	dessert_timevaladd(&timeout, lifetime_ms / 1000, (lifetime_ms % 1000) * 1000);
+	return timeout;
 }
 
 dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint16_t seq_nr, uint8_t weight) {
@@ -60,25 +71,25 @@ dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dess
 		neighbor->iface = iface;
 		HASH_ADD_KEYPTR(hh, nt, neighbor->addr, ETH_ALEN, neighbor);
 	}
-	neighbor->lifetime = NEIGHBOR_LIFETIME;
+	neighbor->timeout = lsr_nt_calc_timeout();
 	neighbor->weight = weight;
 	
 	return DESSERT_OK;
 }
 
-dessert_result_t lsr_nt_age(neighbor_t *neighbor) {
-	neighbor->lifetime--;
-	if(!neighbor->lifetime) {
+dessert_result_t lsr_nt_age(neighbor_t *neighbor, const struct timeval *now) {
+	if(dessert_timevalcmp(now, &neighbor->timeout) < 0) {
 		HASH_DEL(nt, neighbor);
-		CDL_DELETE(neighbor, neighbor);
 		free(neighbor);
 	}
 	return DESSERT_OK;
 }
 
 dessert_result_t lsr_nt_age_all(void) {
+	struct timeval now;
+	gettimeofday(&now, NULL);
 	for(neighbor_t *neighbor = nt; neighbor; neighbor = neighbor->hh.next) {
-		lsr_nt_age(neighbor);
+		lsr_nt_age(neighbor, &now);
 	}
 	return DESSERT_OK;
 }

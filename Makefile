@@ -9,7 +9,7 @@ DIR_ETC = $(DESTDIR)/etc
 DIR_DEFAULT = $(DIR_ETC)/default
 DIR_INIT = $(DIR_ETC)/init.d
 
-MODULES = src/lsr src/pipeline/lsr_pipeline src/periodic/lsr_periodic src/cli/lsr_cli src/database/lsr_database src/database/lsr_nt src/database/lsr_tc
+MODULES = src/lsr src/pipeline/lsr_pipeline src/periodic/lsr_periodic src/cli/lsr_cli src/database/lsr_database src/database/lsr_nt src/database/lsr_tc src/database/lsr_node
 
 UNAME = $(shell uname | tr 'a-z' 'A-Z')
 TARFILES = src etc Makefile ChangeLog android.files icon.*

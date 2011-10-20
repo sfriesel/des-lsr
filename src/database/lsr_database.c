@@ -39,7 +39,7 @@ dessert_result_t lsr_db_tc_neighbor_update(mac_addr node_addr, mac_addr neighbor
 
 bool lsr_db_broadcast_check_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
 	pthread_rwlock_rdlock(&db_lock);
-	bool result = lsr_tc_node_check_broadcast_seq_nr(node_addr, seq_nr);
+	bool result = lsr_tc_check_broadcast_seq_nr(node_addr, seq_nr);
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }
@@ -60,7 +60,7 @@ uint64_t lsr_db_broadcast_get_seq_nr(void) {
 
 bool lsr_db_unicast_check_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
 	pthread_rwlock_rdlock(&db_lock);
-	bool result = lsr_tc_node_check_unicast_seq_nr(node_addr, seq_nr);
+	bool result = lsr_tc_check_unicast_seq_nr(node_addr, seq_nr);
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }

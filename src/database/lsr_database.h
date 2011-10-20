@@ -2,6 +2,8 @@
 #define LSR_DATABASE
 #include <dessert.h>
 
+#define INFINITE_WEIGHT UINT32_MAX
+
 // exchange format to export neighbor table into TC messages
 typedef struct neighbor_info {
 	uint8_t addr[ETH_ALEN];
@@ -10,8 +12,8 @@ typedef struct neighbor_info {
 } neighbor_info_t;
 
 struct seq_interval {
-	uint64_t start; //inclusive
-	uint64_t end; //exclusive
+	uint16_t start; //inclusive
+	uint16_t end; //exclusive
 };
 
 dessert_result_t lsr_db_dump_neighbor_table(neighbor_info_t **result, int *neighbor_count);
