@@ -59,7 +59,8 @@ void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval tim
 		if(i >= this->neighbor_count) {
 			this->neighbor_count++;
 			if(this->neighbor_count >= this->neighbor_size) {
-				this->neighbors = realloc(this->neighbors, this->neighbor_size *= 2);
+				this->neighbor_size *= 2;
+				this->neighbors = realloc(this->neighbors, sizeof(struct edge) * this->neighbor_size);
 			}
 		}
 	}
