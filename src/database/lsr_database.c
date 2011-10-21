@@ -6,8 +6,8 @@
 
 static pthread_rwlock_t db_lock = PTHREAD_RWLOCK_INITIALIZER;
 
-uint64_t broadcast_seq_nr = 0;
-uint64_t unicast_seq_nr = 0;
+uint64_t broadcast_seq_nr = 1;
+uint64_t unicast_seq_nr = 1;
 
 dessert_result_t lsr_db_dump_neighbor_table(neighbor_info_t **result_out, int *neighbor_count) {
 	pthread_rwlock_rdlock(&db_lock);

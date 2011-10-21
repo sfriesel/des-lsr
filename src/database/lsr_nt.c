@@ -47,7 +47,7 @@ dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int
 		out[j].weight = neighbor->weight;
 	}
 	*neighbor_count = out_used;
-	
+	*result = out;
 	return DESSERT_OK;
 }
 
