@@ -16,9 +16,10 @@ int16_t _timeout2lifetime(struct timeval *timeout, struct timeval *now) {
 
 dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int * const neighbor_count) {
 	// circular list of edges pointing to l25 neighbor nodes
-	neighbor_info_t *out = NULL;
+	int out_size = 16;
+	neighbor_info_t *out = calloc(out_size, sizeof(neighbor_info_t));
 	int out_used = 0;
-	int out_size = 0;
+	
 	
 	*neighbor_count = 0;
 	struct timeval now;
