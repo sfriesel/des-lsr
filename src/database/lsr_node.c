@@ -47,6 +47,11 @@ static int _get_first_index(node_t *this, const mac_addr addr) {
 }
 
 void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval timeout, uint8_t weight) {
+	if(!this->neighbors) {
+		this->neighbor_size = 2;
+		this->neighbors = calloc(this->neighbor_size, sizeof(struct edge));
+	}
+	
 	int i = _get_first_index(this, neighbor->addr);
 	
 	if(i >= this->neighbor_count) {
