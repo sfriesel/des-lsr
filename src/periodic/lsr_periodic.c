@@ -22,7 +22,7 @@ dessert_per_result_t _lsr_periodic_send_tc_with_ttl(uint8_t ttl) {
 	dessert_msg_new(&tc);
 	tc->ttl = ttl;
 	tc->u8  = 0;
-	tc->u16 = (uint16_t) lsr_db_broadcast_get_seq_nr();
+	tc->u16 = htons((uint16_t) lsr_db_broadcast_get_seq_nr());
 	
 	dessert_ext_t *ext;
 	
