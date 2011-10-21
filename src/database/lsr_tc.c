@@ -53,8 +53,9 @@ dessert_result_t lsr_tc_update_node(mac_addr node_addr, uint16_t seq_nr) {
 
 dessert_result_t lsr_tc_update_node_neighbor(mac_addr node_addr, mac_addr neighbor_addr, uint8_t lifetime, uint8_t weight) {
 	node_t *node = lsr_tc_get_or_create_node(node_addr);
+	node_t * neighbor = lsr_tc_get_or_create_node(neighbor_addr);
 	
-	lsr_node_update_neighbor(node, neighbor_addr, lsr_tc_calc_timeout(lifetime), weight);
+	lsr_node_update_neighbor(node, neighbor, lsr_tc_calc_timeout(lifetime), weight);
 	
 	return DESSERT_OK;
 }

@@ -46,8 +46,8 @@ static int _get_first_index(node_t *this, const mac_addr addr) {
 	return i;
 }
 
-void lsr_node_update_neighbor(node_t *this, mac_addr neighbor_addr, struct timeval timeout, uint8_t weight) {
-	int i = _get_first_index(this, neighbor_addr);
+void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval timeout, uint8_t weight) {
+	int i = _get_first_index(this, neighbor->addr);
 	
 	if(i >= this->neighbor_count) {
 		i = _get_first_index(this, ether_null);
@@ -61,6 +61,7 @@ void lsr_node_update_neighbor(node_t *this, mac_addr neighbor_addr, struct timev
 	
 	this->neighbors[i].timeout = timeout;
 	this->neighbors[i].weight = weight;
+	this->neighbors[i].node = neighbor;
 }
 
 static int _gap_insert_index(struct seq_interval *gaps, uint16_t seq_nr){
