@@ -38,7 +38,7 @@ dessert_result_t lsr_db_tc_neighbor_update(mac_addr node_addr, mac_addr neighbor
 }
 
 bool lsr_db_broadcast_check_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
-	pthread_rwlock_rdlock(&db_lock);
+	pthread_rwlock_wrlock(&db_lock);
 	bool result = lsr_tc_check_broadcast_seq_nr(node_addr, seq_nr);
 	pthread_rwlock_unlock(&db_lock);
 	return result;
@@ -59,7 +59,7 @@ uint64_t lsr_db_broadcast_get_seq_nr(void) {
 }
 
 bool lsr_db_unicast_check_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
-	pthread_rwlock_rdlock(&db_lock);
+	pthread_rwlock_wrlock(&db_lock);
 	bool result = lsr_tc_check_unicast_seq_nr(node_addr, seq_nr);
 	pthread_rwlock_unlock(&db_lock);
 	return result;
@@ -73,21 +73,28 @@ dessert_result_t lsr_db_get_next_hop(mac_addr dest_addr, mac_addr *next_hop, des
 }
 
 dessert_result_t lsr_db_rt_regenerate(void) {
-	pthread_rwlock_rdlock(&db_lock);
+	pthread_rwlock_wrlock(&db_lock);
 	dessert_result_t result = lsr_tc_dijkstra();
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }
 
 dessert_result_t lsr_db_nt_age_all(void) {
-	pthread_rwlock_rdlock(&db_lock);
+	pthread_rwlock_wrlock(&db_lock);
 	dessert_result_t result = lsr_nt_age_all();
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }
 dessert_result_t lsr_db_tc_age_all(void) {
-	pthread_rwlock_rdlock(&db_lock);
+	pthread_rwlock_wrlock(&db_lock);
 	dessert_result_t result = lsr_tc_age_all();
+	pthread_rwlock_unlock(&db_lock);
+	return result;
+}
+
+char *lsr_db_topology_to_string(void) {
+	pthread_rwlock_rdlock(&db_lock);
+	char *result = lsr_tc_nodeset_to_string();
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }

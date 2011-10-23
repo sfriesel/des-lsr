@@ -126,7 +126,9 @@ int cli_show_node_lifetime(struct cli_def *cli, char *command, char *argv[], int
 }
 
 int cli_show_rt(struct cli_def *cli, char *command, char *argv[], int argc) {
-	//FIXME
+	char *output = lsr_db_topology_to_string();
+	cli_print(cli, "%s", output);
+	free(output);
 	return CLI_OK;
 }
 

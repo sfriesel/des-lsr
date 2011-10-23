@@ -70,4 +70,6 @@ dessert_result_t lsr_db_rt_regenerate(void);
 dessert_result_t lsr_db_nt_age_all(void);
 dessert_result_t lsr_db_tc_age_all(void);
 
+char *lsr_db_topology_to_string(void);
+
 #endif
