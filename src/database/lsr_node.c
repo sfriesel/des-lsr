@@ -21,6 +21,24 @@ node_t *lsr_node_new(mac_addr addr) {
 	return this;
 }
 
+//ages the node and returns whether to delete it
+bool lsr_node_age(node_t *this, const struct timeval *now) {
+	//remove all outdated neighbor edges
+	for(int i = 0; i < this->neighbor_count; ++i) {
+		if(dessert_timevalcmp(now, &this->neighbors[i].timeout) < 0) {
+			this->neighbor_count--;
+			//copy the last array element into the gap
+			this->neighbors[i] = this->neighbors[this->neighbor_count];
+		}
+	}
+	// if node has no next_hop, it's not referenced
+	// as neighbor of any reachable node
+	if(dessert_timevalcmp(now, &this->timeout) < 0 && !this->next_hop) {
+		return true;
+	}
+	return false;
+}
+
 void lsr_node_delete(node_t *this) {
 	free(this->multicast_gaps);
 	free(this->unicast_gaps);
@@ -38,10 +56,7 @@ void lsr_node_set_timeout(node_t *this, struct timeval timeout) {
 
 static inline int _get_neighbor_index(node_t *this, const mac_addr addr) {
 	int i;
-	for(i = 0; i < this->neighbor_size; ++i) {
-		if(!this->neighbors[i].node) {
-			continue;
-		}
+	for(i = 0; i < this->neighbor_count; ++i) {
 		if(mac_equal(addr, this->neighbors[i].node->addr)) {
 			break;
 		}
@@ -50,20 +65,13 @@ static inline int _get_neighbor_index(node_t *this, const mac_addr addr) {
 }
 
 static inline int _get_unused_index(node_t *this) {
-	int i;
-	for(i = 0; i < this->neighbor_size; ++i) {
-		if(!this->neighbors[i].node) {
-			break;
-		}
-	}
-	if(i >= this->neighbor_size) {
+	if(this->neighbor_count >= this->neighbor_size) {
 		uint8_t old_size = this->neighbor_size;
 		this->neighbor_size *= 2;
 		dessert_assert(this->neighbor_size > old_size);
 		this->neighbors = realloc(this->neighbors, sizeof(struct edge) * this->neighbor_size);
-		memset(this->neighbors + old_size, 0, sizeof(struct edge) * (this->neighbor_size - old_size));
 	}
-	return i;
+	return this->neighbor_count;
 }
 
 void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval timeout, uint8_t weight) {
@@ -74,7 +82,7 @@ void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval tim
 	
 	int i = _get_neighbor_index(this, neighbor->addr);
 	
-	if(i >= this->neighbor_size) { //addr not found, new neighbor
+	if(i >= this->neighbor_count) { //addr not found, new neighbor
 		this->neighbor_count++;
 		i = _get_unused_index(this);
 		this->neighbors[i].node = neighbor;

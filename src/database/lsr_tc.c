@@ -88,22 +88,16 @@ dessert_result_t lsr_tc_get_next_hop(mac_addr dest_addr, mac_addr *next_hop, des
 	return DESSERT_OK;
 }
 
-dessert_result_t lsr_tc_node_age(node_t *node, const struct timeval *now) {
-	// if node has no next_hop, it's not referenced
-	// as neighbor of any reachable node
-	if(dessert_timevalcmp(now, &node->timeout) < 0 && !node->next_hop) {
-		HASH_DEL(node_set, node);
-		lsr_node_delete(node);
-	}
-	return DESSERT_OK;
-}
-
 dessert_result_t lsr_tc_age_all(void) {
 	struct timeval now;
 	gettimeofday(&now, NULL);
 	node_t *node, *tmp;
 	HASH_ITER(hh, node_set, node, tmp) {
-		lsr_tc_node_age(node, &now);
+		bool dead = lsr_node_age(node, &now);
+		if(dead) {
+			HASH_DEL(node_set, node);
+			lsr_node_delete(node);
+		}
 	}
 	return DESSERT_OK;
 }
@@ -157,6 +151,7 @@ dessert_result_t lsr_tc_dijkstra() {
 			node_t * neighbor_node = neighbor_edge->node;
 			uint32_t dist = current_node->weight + neighbor_edge->weight;
 			if(neighbor_node->weight > dist) {
+				//FIXME
 				neighbor_node->weight = dist;
 				neighbor_node->next_hop = current_node->next_hop;
 			}

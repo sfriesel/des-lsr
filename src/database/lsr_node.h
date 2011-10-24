@@ -22,6 +22,7 @@ typedef struct node {
 } node_t;
 
 node_t *lsr_node_new(mac_addr addr);
+bool lsr_node_age(node_t *this, const struct timeval *now);
 void lsr_node_delete(node_t *this);
 void lsr_node_set_timeout(node_t *this, struct timeval timeout);
 void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval timeout, uint8_t weight);
