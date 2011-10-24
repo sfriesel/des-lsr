@@ -61,7 +61,8 @@ static void init_cli(void) {
 
 static void init_pipeline(void) {
 	dessert_sysrxcb_add(dessert_msg_ifaceflags_cb_sys, 5);
-	dessert_sysrxcb_add(lsr_sys2mesh, 10);
+	dessert_sysrxcb_add(lsr_loopback, 10);
+	dessert_sysrxcb_add(lsr_sys2mesh, 15);
 	
 	dessert_meshrxcb_add(dessert_msg_ifaceflags_cb, 10);
 	dessert_meshrxcb_add(lsr_process_ttl, 20);

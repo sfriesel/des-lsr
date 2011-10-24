@@ -9,6 +9,7 @@ dessert_cb_result_t lsr_forward_multicast(dessert_msg_t* msg, uint32_t len, dess
 dessert_cb_result_t lsr_forward_unicast(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id);
 dessert_cb_result_t lsr_mesh2sys(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id);
 dessert_cb_result_t lsr_unhandled(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id);
+dessert_cb_result_t lsr_loopback(dessert_msg_t *msg, uint32_t len, dessert_msg_proc_t *proc, dessert_sysif_t *sysif, dessert_frameid_t id);
 
 int lsr_send_randomized(dessert_msg_t *msg);
 

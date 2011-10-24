@@ -135,6 +135,15 @@ dessert_cb_result_t lsr_unhandled(dessert_msg_t* msg, uint32_t len, dessert_msg_
 	return DESSERT_MSG_DROP;
 }
 
+dessert_cb_result_t lsr_loopback(dessert_msg_t *msg, uint32_t len, dessert_msg_proc_t *proc, dessert_sysif_t *sysif, dessert_frameid_t id) {
+	struct ether_header* l25h = dessert_msg_getl25ether(msg);
+	
+	if(mac_equal(l25h->ether_dhost, dessert_l25_defsrc)) {
+		dessert_syssend_msg(msg);
+		return DESSERT_MSG_DROP;
+	}
+	return DESSERT_MSG_KEEP;
+}
 dessert_cb_result_t lsr_sys2mesh(dessert_msg_t *msg, uint32_t len, dessert_msg_proc_t *proc, dessert_sysif_t *sysif, dessert_frameid_t id) {
 	struct ether_header* l25h = dessert_msg_getl25ether(msg);
 	msg->ttl = LSR_TTL_MAX;
