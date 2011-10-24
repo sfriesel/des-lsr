@@ -83,8 +83,8 @@ void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval tim
 	int i = _get_neighbor_index(this, neighbor->addr);
 	
 	if(i >= this->neighbor_count) { //addr not found, new neighbor
-		this->neighbor_count++;
 		i = _get_unused_index(this);
+		this->neighbor_count++;
 		this->neighbors[i].node = neighbor;
 	}
 	
