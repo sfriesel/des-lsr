@@ -36,12 +36,32 @@ void lsr_node_set_timeout(node_t *this, struct timeval timeout) {
 	this->timeout = timeout;
 }
 
-static int _get_first_index(node_t *this, const mac_addr addr) {
+static inline int _get_neighbor_index(node_t *this, const mac_addr addr) {
 	int i;
-	for(i = 0; i < this->neighbor_count; ++i) {
+	for(i = 0; i < this->neighbor_size; ++i) {
+		if(!this->neighbors[i].node) {
+			continue;
+		}
 		if(mac_equal(addr, this->neighbors[i].node->addr)) {
 			break;
 		}
+	}
+	return i;
+}
+
+static inline int _get_unused_index(node_t *this) {
+	int i;
+	for(i = 0; i < this->neighbor_size; ++i) {
+		if(!this->neighbors[i].node) {
+			break;
+		}
+	}
+	if(i >= this->neighbor_size) {
+		uint8_t old_size = this->neighbor_size;
+		this->neighbor_size *= 2;
+		dessert_assert(this->neighbor_size > old_size);
+		this->neighbors = realloc(this->neighbors, sizeof(struct edge) * this->neighbor_size);
+		memset(this->neighbors + old_size, 0, sizeof(struct edge) * (this->neighbor_size - old_size));
 	}
 	return i;
 }
@@ -52,22 +72,16 @@ void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval tim
 		this->neighbors = calloc(this->neighbor_size, sizeof(struct edge));
 	}
 	
-	int i = _get_first_index(this, neighbor->addr);
+	int i = _get_neighbor_index(this, neighbor->addr);
 	
-	if(i >= this->neighbor_count) {
-		i = _get_first_index(this, ether_null);
-		if(i >= this->neighbor_count) {
-			this->neighbor_count++;
-			if(this->neighbor_count >= this->neighbor_size) {
-				this->neighbor_size *= 2;
-				this->neighbors = realloc(this->neighbors, sizeof(struct edge) * this->neighbor_size);
-			}
-		}
+	if(i >= this->neighbor_size) { //addr not found, new neighbor
+		this->neighbor_count++;
+		i = _get_unused_index(this);
+		this->neighbors[i].node = neighbor;
 	}
 	
 	this->neighbors[i].timeout = timeout;
 	this->neighbors[i].weight = weight;
-	this->neighbors[i].node = neighbor;
 }
 
 static int _gap_insert_index(struct seq_interval *gaps, uint16_t seq_nr){
