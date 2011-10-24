@@ -171,7 +171,7 @@ char *lsr_tc_nodeset_to_string(void) {
 		if(strlen(line) >= (size_t)(size - used)) {
 			buf = realloc(buf, size *= 2);
 		}
-		used += snprintf(buf + used, size - used, "%s\n", line);
+		used += snprintf(buf + used, size - used, "%s", line);
 	}
 	return buf;
 }
