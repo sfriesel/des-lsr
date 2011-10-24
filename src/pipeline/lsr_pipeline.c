@@ -44,6 +44,9 @@ dessert_cb_result_t lsr_process_tc(dessert_msg_t* msg, uint32_t len, dessert_msg
 	}
 
 	struct ether_header* l25h = dessert_msg_getl25ether(msg);
+	
+	dessert_debug("TC\t" MAC, l25h->ether_shost);
+	
 	//if tc travelled exactly one hop, also handle as hello packet
 	if(msg->u8 == 1) {
 		lsr_db_nt_update(msg->l2h.ether_shost, l25h->ether_shost, iface, ntohs(msg->u16));
