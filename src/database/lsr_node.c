@@ -174,7 +174,7 @@ bool lsr_node_check_unicast_seq_nr(node_t *node, uint16_t seq_nr) {
 
 char *lsr_node_to_string(node_t *this) {
 	static char buf[1024];
-	snprintf(buf, sizeof(buf), MAC " %" PRIi64 ".%06" PRIi64 "\tmulti-nr: %"
+	snprintf(buf, sizeof(buf), MAC " %ld.%06ld\tmulti-nr: %"
 	         PRIu64 "\tuni-nr: %" PRIu64 "\tweight: %" PRIu32 "\tngbr#: %" PRIu8, EXPLODE_ARRAY6(this->addr), this->timeout.tv_sec, this->timeout.tv_usec, this->multicast_seq_nr, this->unicast_seq_nr, this->weight, this->neighbor_count);
 	return buf;
 }
