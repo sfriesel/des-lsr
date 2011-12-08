@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
 	uint16_t logcfg_flags = DESSERT_LOG_SYSLOG | DESSERT_LOG_STDERR;
 	
 	int c;
-	while ((c = getopt (argc, argv, "dc:")) != -1) {
+	while((c = getopt (argc, argv, "dc:")) != -1) {
 		switch(c) {
 			case 'd':
 				init_flags.daemonize = 1;
@@ -97,7 +97,6 @@ int main(int argc, char *argv[]) {
 				}
 				config_files[used++] = optarg;
 				break;
-				
 			default:
 				exit(EXIT_FAILURE);
 				break;
