@@ -98,3 +98,24 @@ char *lsr_db_topology_to_string(void) {
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }
+
+char *lsr_db_rt_to_string(void) {
+	pthread_rwlock_rdlock(&db_lock);
+	char *result = lsr_tc_nodeset_to_route_string();
+	pthread_rwlock_unlock(&db_lock);
+	return result;
+}
+
+const char *lsr_db_node_to_string_header(void) {
+	pthread_rwlock_rdlock(&db_lock);
+	const char *result = lsr_node_to_string_header();
+	pthread_rwlock_unlock(&db_lock);
+	return result;
+}
+
+const char *lsr_db_node_to_route_string_header(void) {
+	pthread_rwlock_rdlock(&db_lock);
+	const char *result = lsr_node_to_route_string_header();
+	pthread_rwlock_unlock(&db_lock);
+	return result;
+}

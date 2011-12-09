@@ -172,6 +172,24 @@ char *lsr_tc_nodeset_to_string(void) {
 			buf = realloc(buf, size *= 2);
 		}
 		used += snprintf(buf + used, size - used, "%s\n", line);
+		free(line);
+	}
+	return buf;
+}
+
+char *lsr_tc_nodeset_to_route_string(void) {
+	int size = 1024;
+	char *buf = malloc(size);
+	buf[0] = '\0';
+	int used = 0;
+	node_t *node, *tmp;
+	HASH_ITER(hh, node_set, node, tmp) {
+		char *line = lsr_node_to_route_string(node);
+		if(strlen(line) >= (size_t)(size - used)) {
+			buf = realloc(buf, size *= 2);
+		}
+		used += snprintf(buf + used, size - used, "%s\n", line);
+		free(line);
 	}
 	return buf;
 }
