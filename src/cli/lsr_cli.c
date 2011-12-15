@@ -5,123 +5,60 @@
 
 int cli_set_hello_interval(struct cli_def *cli, char *command, char *argv[], int argc) {
 	if(argc != 1) {
-		cli_print(cli, "usage %s [interval]\n", command);
+		cli_print(cli, "usage %s [interval in ms]\n", command);
 		return CLI_ERROR;
 	}
 
-	hello_interval = (uint16_t) strtoul(argv[0], NULL, 10);
-	dessert_periodic_del(periodic_send_hello);
-	struct timeval hello_interval_t;
-	hello_interval_t.tv_sec = hello_interval / 1000;
-	hello_interval_t.tv_usec = (hello_interval % 1000) * 1000;
-	periodic_send_hello = dessert_periodic_add(lsr_periodic_send_hello, NULL, NULL, &hello_interval_t);
+	dessert_periodic_del(periodic_send_hello_tc);
+	uintmax_t hello_interval = strtoul(argv[0], NULL, 0);
+	tc_interval = hello_interval * tc_ratio;
+	struct timeval hello_interval_tv;
+	dessert_ms2timeval(hello_interval, &hello_interval_tv);
+	periodic_send_hello_tc = dessert_periodic_add(lsr_periodic_send_hello_tc, NULL, NULL, &hello_interval_tv);
 	dessert_notice("setting HELLO interval to %d ms\n", hello_interval);
 	return CLI_OK;
 }
 
 int cli_show_hello_interval(struct cli_def *cli, char *command, char *argv[], int argc) {
-	cli_print(cli, "HELLO interval = %d ms\n", hello_interval);
+	cli_print(cli, "HELLO interval = %jd ms\n", dessert_timeval2ms(&periodic_send_hello_tc->interval));
 	return CLI_OK;
 }
 
-int cli_set_tc_interval(struct cli_def *cli, char *command, char *argv[], int argc) {
+int cli_set_tc_ratio(struct cli_def *cli, char *command, char *argv[], int argc) {
 	if(argc != 1) {
-		cli_print(cli, "usage %s [interval]\n", command);
+		cli_print(cli, "usage %s [interval in ms]\n", command);
 		return CLI_ERROR;
 	}
 
-	#if 0
-	tc_interval = (uint16_t) strtoul(argv[0], NULL, 10);
-	dessert_periodic_del(periodic_send_tc);
-	struct timeval tc_interval_t;
-	tc_interval_t.tv_sec = tc_interval / 1000;
-	tc_interval_t.tv_usec = (tc_interval % 1000) * 1000;
-	periodic_send_tc = dessert_periodic_add(send_tc, NULL, NULL, &tc_interval_t);
-	dessert_notice("setting TC interval to %d ms\n", tc_interval);
-	#endif
+	uintmax_t new_tc_ratio = (uint16_t) strtoul(argv[0], NULL, 10);
+	tc_interval = tc_interval / tc_ratio * new_tc_ratio;
+	tc_ratio = new_tc_ratio;
+	dessert_notice("setting tc_ratio to %jd ms\n", (intmax_t)tc_ratio);
 	return CLI_OK;
 }
 
-int cli_show_tc_interval(struct cli_def *cli, char *command, char *argv[], int argc) {
-	cli_print(cli, "TC interval = %d ms\n", tc_interval);
+int cli_show_tc_ratio(struct cli_def *cli, char *command, char *argv[], int argc) {
+	cli_print(cli, "TC ratio = %jd ms\n", (uintmax_t)tc_ratio);
 	return CLI_OK;
 }
 
-int cli_set_refresh_list(struct cli_def *cli, char *command, char *argv[], int argc) {
+int cli_set_rt_rebuild_interval(struct cli_def *cli, char *command, char *argv[], int argc) {
 	if(argc != 1) {
-		cli_print(cli, "usage %s [interval]\n", command);
+		cli_print(cli, "usage %s [interval in ms]\n", command);
 		return CLI_ERROR;
 	}
 
-	#if 0
-	neighbor_aging_interval = (uint16_t) strtoul(argv[0], NULL, 10);
-	dessert_periodic_del(periodic_refresh_nh);
-	struct timeval refresh_neighbor_t;
-	refresh_neighbor_t.tv_sec = neighbor_aging_interval / 1000;
-	refresh_neighbor_t.tv_usec = (neighbor_aging_interval % 1000) * 1000;
-	periodic_refresh_nh = dessert_periodic_add(refresh_list, NULL, NULL, &refresh_neighbor_t);
-	dessert_notice("setting NH refresh interval to %d ms\n", neighbor_aging_interval);
-	#endif
+	dessert_periodic_del(periodic_rebuild_rt);
+	uintmax_t rt_rebuild_interval = strtoul(argv[0], NULL, 0);
+	struct timeval rt_rebuild_tv;
+	dessert_ms2timeval(rt_rebuild_interval, &rt_rebuild_tv);
+	periodic_rebuild_rt = dessert_periodic_add(lsr_periodic_rebuild_rt, NULL, NULL, &rt_rebuild_tv);
+	dessert_notice("setting rt_rebuild_interval to %jd ms\n", (intmax_t)rt_rebuild_interval);
 	return CLI_OK;
 }
 
-int cli_show_refresh_list(struct cli_def *cli, char *command, char *argv[], int argc) {
-	cli_print(cli, "NH refresh interval = %d ms\n", neighbor_aging_interval);
-	return CLI_OK;
-}
-
-int cli_set_refresh_rt(struct cli_def *cli, char *command, char *argv[], int argc) {
-	if(argc != 1) {
-		cli_print(cli, "usage %s [interval]\n", command);
-		return CLI_ERROR;
-	}
-
-	#if 0
-	node_aging_interval = (uint16_t) strtoul(argv[0], NULL, 10);
-	dessert_periodic_del(periodic_refresh_rt);
-	struct timeval refresh_rt_t;
-	refresh_rt_t.tv_sec = node_aging_interval / 1000;
-	refresh_rt_t.tv_usec = (node_aging_interval % 1000) * 1000;
-	periodic_refresh_rt = dessert_periodic_add(refresh_rt, NULL, NULL, &refresh_rt_t);
-	dessert_notice("setting RT refresh interval to %d ms\n", node_aging_interval);
-	#endif
-	return CLI_OK;
-}
-
-int cli_show_refresh_rt(struct cli_def *cli, char *command, char *argv[], int argc) {
-	cli_print(cli, "RT refresh interval = %d ms\n", node_aging_interval);
-	return CLI_OK;
-}
-
-int cli_set_neighbor_lifetime(struct cli_def *cli, char *command, char *argv[], int argc) {
-	if(argc != 1) {
-		cli_print(cli, "usage %s [interval]\n", command);
-		return CLI_ERROR;
-	}
-
-	neighbor_lifetime = (uint16_t) strtoul(argv[0], NULL, 10);
-	dessert_notice("setting NH entry age to %d ms\n", node_aging_interval);
-	return CLI_OK;
-}
-
-int cli_show_neighbor_lifetime(struct cli_def *cli, char *command, char *argv[], int argc) {
-	cli_print(cli, "NH entry age = %d ms\n", neighbor_aging_interval);
-	return CLI_OK;
-}
-
-int cli_set_node_lifetime(struct cli_def *cli, char *command, char *argv[], int argc) {
-	if(argc != 1) {
-		cli_print(cli, "usage %s [interval]\n", command);
-		return CLI_ERROR;
-	}
-
-	node_lifetime = (uint16_t) strtoul(argv[0], NULL, 10);
-	dessert_notice("setting RT entry age to %d ms\n", node_aging_interval);
-	return CLI_OK;
-}
-
-int cli_show_node_lifetime(struct cli_def *cli, char *command, char *argv[], int argc) {
-	cli_print(cli, "RT entry age = %d ms\n", node_aging_interval);
+int cli_show_rt_rebuild_interval(struct cli_def *cli, char *command, char *argv[], int argc) {
+	cli_print(cli, "rt_rebuild_interval = %jd ms\n", dessert_timeval2ms(&periodic_rebuild_rt->interval));
 	return CLI_OK;
 }
 

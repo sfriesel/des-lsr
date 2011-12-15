@@ -7,23 +7,19 @@
 #include "pipeline/lsr_pipeline.h"
 #include "cli/lsr_cli.h"
 
-uint16_t hello_interval = HELLO_INTERVAL;
-uint16_t tc_interval = TC_INTERVAL;
-uint16_t neighbor_aging_interval = NEIGHBOR_AGING_INTERVAL;
-uint16_t node_aging_interval = NODE_AGING_INTERVAL;
-uint8_t  neighbor_lifetime = NEIGHBOR_LIFETIME;
-uint8_t  node_lifetime = NODE_LIFETIME;
-uint16_t rt_rebuild_interval = RT_REBUILD_INTERVAL;
+uintmax_t tc_ratio = TC_RATIO;
+uintmax_t tc_interval = HELLO_INTERVAL * TC_RATIO;
+uintmax_t neighbor_lifetime = NEIGHBOR_LIFETIME;
+uintmax_t node_lifetime = NODE_LIFETIME;
 
 static void init_periodics(void) {
-	struct timeval hello_interval_t = { hello_interval / 1000, (hello_interval % 1000) * 1000};
-	periodic_send_hello = dessert_periodic_add(lsr_periodic_send_hello, NULL, NULL, &hello_interval_t);
+	struct timeval hello_tc_interval_tv;
+	dessert_ms2timeval(HELLO_INTERVAL, &hello_tc_interval_tv);
+	periodic_send_hello_tc = dessert_periodic_add(lsr_periodic_send_hello_tc, NULL, NULL, &hello_tc_interval_tv);
 	
-	struct timeval tc_interval_timeval = { tc_interval / 1000, (tc_interval % 1000) * 1000};
-	periodic_send_tc = dessert_periodic_add(lsr_periodic_send_tc, NULL, NULL, &tc_interval_timeval);
-	
-	struct timeval rt_rebuild_timeval = { rt_rebuild_interval / 1000, (rt_rebuild_interval % 1000) * 1000};
-	periodic_regenerate_rt = dessert_periodic_add(lsr_periodic_regenerate_rt, NULL, NULL, &rt_rebuild_timeval);
+	struct timeval rt_rebuild_tv;
+	dessert_ms2timeval(RT_REBUILD_INTERVAL, &rt_rebuild_tv);
+	periodic_rebuild_rt = dessert_periodic_add(lsr_periodic_rebuild_rt, NULL, NULL, &rt_rebuild_tv);
 }
 
 static void init_cli(void) {
@@ -35,22 +31,20 @@ static void init_cli(void) {
 		int (*cb)(struct cli_def *, char *, char **, int);
 		char *help;
 	} cfg_args[] = {
-		{ dessert_cli_cfg_iface, "sys"           , dessert_cli_cmd_addsysif , "initialize sys interface"  },
-		{ dessert_cli_cfg_iface, "mesh"          , dessert_cli_cmd_addmeshif, "initialize mesh interface" },
-		{ _lsr_cli_set         , "hello_interval", cli_set_hello_interval   , "set HELLO packet interval" },
-		{ _lsr_cli_set         , "tc_interval"   , cli_set_tc_interval      , "set TC packet interval"    },
-		{ _lsr_cli_set         , "refresh_list"  , cli_set_refresh_list     , "set refresh NH interval"   },
-		{ _lsr_cli_set         , "refresh_rt"    , cli_set_refresh_rt       , "set refresh RT interval"   },
-		{ NULL                 , NULL            , NULL                     , NULL                        }
+		{ dessert_cli_cfg_iface, "sys"           , dessert_cli_cmd_addsysif   , "initialize sys interface"  },
+		{ dessert_cli_cfg_iface, "mesh"          , dessert_cli_cmd_addmeshif  , "initialize mesh interface" },
+		{ _lsr_cli_set         , "hello_interval", cli_set_hello_interval     , "set HELLO packet interval" },
+		{ _lsr_cli_set         , "tc_ratio"      , cli_set_tc_ratio           , "set TC packet ratio"       },
+		{ _lsr_cli_set         , "rebuild_rt"    , cli_set_rt_rebuild_interval, "set rebuild RT interval"   },
+		{ NULL                 , NULL            , NULL                       , NULL                        }
 	};
 	struct args unpriv_args[] = {
-		{ dessert_cli_show     , "hello_interval", cli_show_hello_interval , "show HELLO interval"        },
-		{ dessert_cli_show     ,    "tc_interval", cli_show_tc_interval    , "show TC packet size"        },
-		{ dessert_cli_show     ,   "refresh_list", cli_show_refresh_list   , "show refresh NH interval"   },
-		{ dessert_cli_show     ,     "refresh_rt", cli_show_refresh_rt     , "show refresh RT interval"   },
-		{ dessert_cli_show     ,             "rt", cli_show_rt             , "show RT"                    },
-		{ dessert_cli_show     ,             "nt", cli_show_nt             , "show NT"                    },
-		{ NULL                 , NULL            , NULL                     , NULL                        }
+		{ dessert_cli_show     , "hello_interval", cli_show_hello_interval     , "show HELLO interval"        },
+		{ dessert_cli_show     ,       "tc_ratio", cli_show_tc_ratio           , "show TC packet ratio"       },
+		{ dessert_cli_show     ,     "rt_rebuild", cli_show_rt_rebuild_interval, "show refresh RT interval"   },
+		{ dessert_cli_show     ,             "rt", cli_show_rt                 , "show RT"                    },
+		{ dessert_cli_show     ,             "nt", cli_show_nt                 , "show NT"                    },
+		{ NULL                 , NULL            , NULL                        , NULL                         }
 	};
 	
 	for(struct args *a =    cfg_args; a->name; ++a)

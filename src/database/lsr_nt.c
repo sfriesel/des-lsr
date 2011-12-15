@@ -1,17 +1,22 @@
 #include "../lsr_config.h"
 #include "lsr_nt.h"
 #include "lsr_tc.h"
+#include "../periodic/lsr_periodic.h"
 
 #include <utlist.h>
 
 // neighbor table; hash map of all neighboring l2 interfaces
 static neighbor_t *nt = NULL;
 
-int16_t _timeout2lifetime(struct timeval *timeout, struct timeval *now) {
+static uint8_t timeout2lifetime(struct timeval *timeout, struct timeval *now) {
 	if(dessert_timevalcmp(timeout, now) < 0)
 		return -1;
 	uint64_t diff = dessert_timeval2ms(timeout) - dessert_timeval2ms(now);
-	return diff / tc_interval;
+	uintmax_t result = diff / tc_interval;
+	if(result > UINT8_MAX) {
+		result = UINT8_MAX;
+	}
+	return (uint8_t)result;
 }
 
 dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int * const neighbor_count) {
@@ -27,8 +32,8 @@ dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int
 	
 	neighbor_t *neighbor, *tmp;
 	HASH_ITER(hh, nt, neighbor, tmp) {
-		int16_t lifetime = _timeout2lifetime(&neighbor->timeout, &now);
-		if(lifetime < 0) {
+		uint8_t lifetime = timeout2lifetime(&neighbor->timeout, &now);
+		if(lifetime == 0) {
 			continue;
 		}
 		int j;
@@ -53,7 +58,7 @@ dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int
 }
 
 struct timeval lsr_nt_calc_timeout(void) {
-	uint32_t lifetime_ms = neighbor_lifetime * hello_interval;
+	uint32_t lifetime_ms = neighbor_lifetime * dessert_timeval2ms(&periodic_send_hello_tc->interval);
 	struct timeval timeout;
 	gettimeofday(&timeout, NULL);
 	dessert_timevaladd(&timeout, lifetime_ms / 1000, (lifetime_ms % 1000) * 1000);
