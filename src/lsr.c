@@ -41,7 +41,7 @@ static void init_cli(void) {
 	struct args unpriv_args[] = {
 		{ dessert_cli_show     , "hello_interval", cli_show_hello_interval     , "show HELLO interval"        },
 		{ dessert_cli_show     ,       "tc_ratio", cli_show_tc_ratio           , "show TC packet ratio"       },
-		{ dessert_cli_show     ,     "rt_rebuild", cli_show_rt_rebuild_interval, "show refresh RT interval"   },
+		{ dessert_cli_show     ,     "rebuild_rt", cli_show_rt_rebuild_interval, "show refresh RT interval"   },
 		{ dessert_cli_show     ,             "rt", cli_show_rt                 , "show RT"                    },
 		{ dessert_cli_show     ,             "nt", cli_show_nt                 , "show NT"                    },
 		{ NULL                 , NULL            , NULL                        , NULL                         }
