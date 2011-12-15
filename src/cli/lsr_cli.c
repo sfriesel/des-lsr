@@ -74,9 +74,9 @@ int cli_show_nt(struct cli_def *cli, char *command, char *argv[], int argc) {
 	int neighbor_count = 0;
 	lsr_db_dump_neighbor_table(&neighbor_list, &neighbor_count);
 
-	cli_print(cli,  "#######################################################");
-	cli_print(cli,  "## NEIGHBOR L25                 # WEIGHT  # LIFETIME ##");
-	cli_print(cli,  "#######################################################");
+	cli_print(cli,  "###############################################");
+	cli_print(cli,  "## NEIGHBOR L25         # WEIGHT  # LIFETIME ##");
+	cli_print(cli,  "###############################################");
 
 	for(int i = 0; i < neighbor_count; ++i) {
 		cli_print(cli, "## " MAC "\t# %d\t# %d",

@@ -197,13 +197,18 @@ const char *lsr_node_to_string_header(void) {
 
 char *lsr_node_to_route_string(node_t *this) {
 	char *buf = malloc(128);
-	snprintf(buf, sizeof(buf),
-	         MAC " | %17s | %10jd",
-	         EXPLODE_ARRAY6(this->addr),
-	         "<null>",
-	         (intmax_t)this->weight);
 	if(this->next_hop) {
-		snprintf(buf + 20, sizeof(buf) - 20, MAC, EXPLODE_ARRAY6(this->next_hop->node->addr));
+		snprintf(buf, sizeof(buf),
+			     MAC " | " MAC " | %10jd",
+			     EXPLODE_ARRAY6(this->addr),
+			     EXPLODE_ARRAY6(this->next_hop->node->addr),
+			     (intmax_t)this->weight);
+	} else {
+		snprintf(buf, sizeof(buf),
+			     MAC " | %17s | %10jd",
+			     EXPLODE_ARRAY6(this->addr),
+			     "<null>",
+			     (intmax_t)this->weight);
 	}
 	return buf;
 }

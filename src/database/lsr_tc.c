@@ -185,7 +185,7 @@ char *lsr_tc_nodeset_to_route_string(void) {
 	node_t *node, *tmp;
 	HASH_ITER(hh, node_set, node, tmp) {
 		char *line = lsr_node_to_route_string(node);
-		if(strlen(line) >= (size_t)(size - used)) {
+		if(strlen(line) + 1 >= (size_t)(size - used)) {
 			buf = realloc(buf, size *= 2);
 		}
 		used += snprintf(buf + used, size - used, "%s\n", line);
