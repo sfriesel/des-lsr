@@ -85,7 +85,7 @@ int cli_set_refresh_rt(struct cli_def *cli, char *command, char *argv[], int arg
 	periodic_refresh_rt = dessert_periodic_add(refresh_rt, NULL, NULL, &refresh_rt_t);
 	dessert_notice("setting RT refresh interval to %d ms\n", node_aging_interval);
 	#endif
-    return CLI_OK;
+	return CLI_OK;
 }
 
 int cli_show_refresh_rt(struct cli_def *cli, char *command, char *argv[], int argc) {
