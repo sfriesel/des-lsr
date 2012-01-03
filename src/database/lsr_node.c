@@ -57,7 +57,7 @@ void lsr_node_set_timeout(node_t *this, struct timeval timeout) {
 	this->timeout = timeout;
 }
 
-static inline int _get_neighbor_index(node_t *this, const mac_addr addr) {
+static inline int get_neighbor_index(node_t *this, const mac_addr addr) {
 	int i;
 	for(i = 0; i < this->neighbor_count; ++i) {
 		if(mac_equal(addr, this->neighbors[i].node->addr)) {
@@ -67,7 +67,7 @@ static inline int _get_neighbor_index(node_t *this, const mac_addr addr) {
 	return i;
 }
 
-static inline int _get_unused_index(node_t *this) {
+static inline int get_unused_index(node_t *this) {
 	if(this->neighbor_count >= this->neighbor_size) {
 		uint8_t old_size = this->neighbor_size;
 		this->neighbor_size *= 2;
@@ -83,10 +83,10 @@ void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval tim
 		this->neighbors = calloc(this->neighbor_size, sizeof(struct edge));
 	}
 	
-	int i = _get_neighbor_index(this, neighbor->addr);
+	int i = get_neighbor_index(this, neighbor->addr);
 	
 	if(i >= this->neighbor_count) { //addr not found, new neighbor
-		i = _get_unused_index(this);
+		i = get_unused_index(this);
 		this->neighbor_count++;
 		this->neighbors[i].node = neighbor;
 	}
