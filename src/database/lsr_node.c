@@ -199,13 +199,13 @@ char *lsr_node_to_route_string(node_t *this) {
 	char *buf = malloc(bufSize);
 	char *iter = buf;
 
-	iter += sprintf(buf, MAC " | ", EXPLODE_ARRAY6(this->addr));
+	iter += sprintf(iter, MAC " | ", EXPLODE_ARRAY6(this->addr));
 	if(this->next_hop) {
-		iter += sprintf(buf, MAC, EXPLODE_ARRAY6(this->next_hop->node->addr));
+		iter += sprintf(iter, MAC, EXPLODE_ARRAY6(this->next_hop->node->addr));
 	} else {
-		iter += sprintf(buf, "%17s", "<null>");
+		iter += sprintf(iter, "%17s", "<null>");
 	}
-	iter += sprintf(buf, " | %11jd", (intmax_t)this->weight);
+	iter += sprintf(iter, " | %11jd", (intmax_t)this->weight);
 	assert(iter <= buf + bufSize);
 	return buf;
 }
