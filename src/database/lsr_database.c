@@ -94,14 +94,14 @@ dessert_result_t lsr_db_tc_age_all(void) {
 
 char *lsr_db_topology_to_string(void) {
 	pthread_rwlock_rdlock(&db_lock);
-	char *result = lsr_tc_nodeset_to_string();
+	char *result = lsr_tc_nodeset_to_string("\n");
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }
 
 char *lsr_db_rt_to_string(void) {
 	pthread_rwlock_rdlock(&db_lock);
-	char *result = lsr_tc_nodeset_to_route_string();
+	char *result = lsr_tc_nodeset_to_route_string("\n");
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }

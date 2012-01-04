@@ -164,7 +164,6 @@ dessert_result_t lsr_tc_dijkstra() {
 			node_t * neighbor_node = neighbor_edge->node;
 			uint32_t dist = current_node->weight + neighbor_edge->weight;
 			if(neighbor_node->weight > dist) {
-				//FIXME
 				neighbor_node->weight = dist;
 				neighbor_node->next_hop = current_node->next_hop;
 			}
@@ -173,7 +172,7 @@ dessert_result_t lsr_tc_dijkstra() {
 	return DESSERT_OK;
 }
 
-char *lsr_tc_nodeset_to_string(void) {
+char *lsr_tc_nodeset_to_string(const char *delim) {
 	int size = 1024;
 	char *buf = malloc(size);
 	buf[0] = '\0';
@@ -184,13 +183,13 @@ char *lsr_tc_nodeset_to_string(void) {
 		if(strlen(line) >= (size_t)(size - used)) {
 			buf = realloc(buf, size *= 2);
 		}
-		used += snprintf(buf + used, size - used, "%s\n", line);
+		used += snprintf(buf + used, size - used, "%s%s", line, delim);
 		free(line);
 	}
 	return buf;
 }
 
-char *lsr_tc_nodeset_to_route_string(void) {
+char *lsr_tc_nodeset_to_route_string(const char *delim) {
 	int size = 1024;
 	char *buf = malloc(size);
 	buf[0] = '\0';
@@ -201,7 +200,7 @@ char *lsr_tc_nodeset_to_route_string(void) {
 		if(strlen(line) + 1 >= (size_t)(size - used)) {
 			buf = realloc(buf, size *= 2);
 		}
-		used += snprintf(buf + used, size - used, "%s\n", line);
+		used += snprintf(buf + used, size - used, "%s%s", line, delim);
 		free(line);
 	}
 	return buf;

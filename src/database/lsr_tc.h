@@ -21,7 +21,7 @@ bool lsr_tc_check_unicast_seq_nr(mac_addr node_addr, uint16_t seq_nr);
 dessert_result_t lsr_tc_age_all(void);
 dessert_result_t lsr_tc_dijkstra(void);
 edge_t *lsr_create_edge(node_t *target, uint32_t lifetime, uint32_t weight);
-char *lsr_tc_nodeset_to_string(void);
-char *lsr_tc_nodeset_to_route_string(void);
+char *lsr_tc_nodeset_to_string(const char *delim);
+char *lsr_tc_nodeset_to_route_string(const char *delim);
 
 #endif
