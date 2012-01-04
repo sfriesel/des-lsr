@@ -137,10 +137,12 @@ dessert_result_t lsr_tc_dijkstra() {
 		node->weight = INFINITE_WEIGHT;
 		node->next_hop = NULL;
 	}
+	
+	//initialize this node to have distance 0
 	if(!this_node) {
 		this_node = lsr_tc_create_node(dessert_l25_defsrc);
-		this_node->weight = 0;
 	}
+	this_node->weight = 0;
 	
 	//initialize direct neighbors weights
 	lsr_nt_set_neighbor_weights();
