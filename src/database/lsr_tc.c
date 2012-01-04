@@ -169,6 +169,8 @@ dessert_result_t lsr_tc_dijkstra() {
 			}
 		}
 	}
+	char *out = lsr_tc_nodeset_to_route_string(";");
+	dessert_info("$RT %s", out);
 	return DESSERT_OK;
 }
 
