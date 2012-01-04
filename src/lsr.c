@@ -99,10 +99,8 @@ int main(int argc, char *argv[]) {
 	
 	dessert_init("LSR", 0x03, init_flags);
 	dessert_logcfg(logcfg_flags);
-
 	init_cli();
-	init_pipeline();
-	init_periodics();
+	dessert_cli_run();
 
 	for(int i = 0; i < used; ++i) {
 		FILE *cfg = fopen(config_files[i], "r");
@@ -113,7 +111,9 @@ int main(int argc, char *argv[]) {
 		cli_file(dessert_cli, cfg, PRIVILEGE_PRIVILEGED, MODE_CONFIG);
 	}
 
-	dessert_cli_run();
+	init_pipeline();
+	init_periodics();
+
 	return dessert_run();
 }
 

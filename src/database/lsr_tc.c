@@ -132,16 +132,21 @@ void priority_queue_add(priority_queue_t **queue, node_t *node) {
 }
 
 dessert_result_t lsr_tc_dijkstra() {
+	//don't calculate routes if own address is unknown
+	if(mac_equal(dessert_l25_defsrc, ether_null)) {
+		return DESSERT_ERR;
+	}
 	node_t *node = NULL;
 	for(node = node_set; node; node = node->hh.next) {
 		node->weight = INFINITE_WEIGHT;
 		node->next_hop = NULL;
 	}
 	
-	//initialize this node to have distance 0
+	//create this node as soon as defsrc is available
 	if(!this_node) {
 		this_node = lsr_tc_create_node(dessert_l25_defsrc);
 	}
+	//initialize this node to have distance 0
 	this_node->weight = 0;
 	
 	//initialize direct neighbors weights
