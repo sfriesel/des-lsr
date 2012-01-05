@@ -180,7 +180,7 @@ char *lsr_tc_nodeset_to_string(const char *delim) {
 	node_t *node, *tmp;
 	HASH_ITER(hh, node_set, node, tmp) {
 		char *line = lsr_node_to_string(node);
-		if(strlen(line) +  strlen(delim) >= size - used) {
+		if((int)strlen(line) + (int)strlen(delim) >= size - used) {
 			buf = realloc(buf, size *= 2);
 		}
 		used += snprintf(buf + used, size - used, "%s%s", line, delim);
@@ -197,7 +197,7 @@ char *lsr_tc_nodeset_to_route_string(const char *delim) {
 	node_t *node, *tmp;
 	HASH_ITER(hh, node_set, node, tmp) {
 		char *line = lsr_node_to_route_string(node);
-		if(strlen(line) + strlen(delim) >= size -used) {
+		if((int)strlen(line) + (int)strlen(delim) >= size -used) {
 			buf = realloc(buf, size *= 2);
 		}
 		used += snprintf(buf + used, size - used, "%s%s", line, delim);
