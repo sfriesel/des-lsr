@@ -26,7 +26,7 @@ int cli_show_hello_interval(struct cli_def *cli, char *command, char *argv[], in
 
 int cli_set_tc_ratio(struct cli_def *cli, char *command, char *argv[], int argc) {
 	if(argc != 1) {
-		cli_print(cli, "usage %s [interval in ms]\n", command);
+		cli_print(cli, "usage %s [ratio, ever n-th hello turns into TC]\n", command);
 		return CLI_ERROR;
 	}
 
@@ -38,7 +38,7 @@ int cli_set_tc_ratio(struct cli_def *cli, char *command, char *argv[], int argc)
 }
 
 int cli_show_tc_ratio(struct cli_def *cli, char *command, char *argv[], int argc) {
-	cli_print(cli, "TC ratio = %jd ms\n", (uintmax_t)tc_ratio);
+	cli_print(cli, "TC ratio = %jd\n", (uintmax_t)tc_ratio);
 	return CLI_OK;
 }
 
@@ -64,7 +64,7 @@ int cli_show_rt_rebuild_interval(struct cli_def *cli, char *command, char *argv[
 
 int cli_show_rt(struct cli_def *cli, char *command, char *argv[], int argc) {
 	char *output = lsr_db_rt_to_string();
-	cli_print(cli, "%s", output);
+	cli_print(cli, "%s\n%s", lsr_db_node_to_route_string_header(), output);
 	free(output);
 	return CLI_OK;
 }
