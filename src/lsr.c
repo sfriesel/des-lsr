@@ -53,8 +53,12 @@ static void init_cli(void) {
 		cli_register_command(dessert_cli, a->parent, a->name, a->cb, PRIVILEGE_UNPRIVILEGED, MODE_EXEC  , a->help);
 }
 
+dessert_cb_result_t lsr_msg_flags_sys_cb(dessert_msg_t *msg, uint32_t len, dessert_msg_proc_t *proc, dessert_sysif_t *iface, dessert_frameid_t id) {
+	return dessert_msg_ifaceflags_cb(msg, len, proc, (dessert_meshif_t *)iface, id);
+}
+
 static void init_pipeline(void) {
-	dessert_sysrxcb_add(dessert_msg_ifaceflags_cb_sys, 5);
+	dessert_sysrxcb_add(lsr_msg_flags_sys_cb, 5);
 	dessert_sysrxcb_add(lsr_loopback, 10);
 	dessert_sysrxcb_add(lsr_sys2mesh, 15);
 	
