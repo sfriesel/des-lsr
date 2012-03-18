@@ -71,7 +71,7 @@ static inline int get_unused_index(node_t *this) {
 	if(this->neighbor_count >= this->neighbor_size) {
 		uint8_t old_size = this->neighbor_size;
 		this->neighbor_size *= 2;
-		dessert_assert(this->neighbor_size > old_size);
+		assert(this->neighbor_size > old_size);
 		this->neighbors = realloc(this->neighbors, sizeof(struct edge) * this->neighbor_size);
 	}
 	return this->neighbor_count;

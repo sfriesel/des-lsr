@@ -67,14 +67,14 @@ dessert_cb_result_t lsr_process_tc(dessert_msg_t* msg, uint32_t len, dessert_msg
 
 // --- CALLBACK PIPELINE --- //
 dessert_cb_result_t lsr_drop_errors(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
-	if(proc->lflags.l2_src || proc->lflags.l25_src) {
+	if(proc->lflags & DESSERT_RX_FLAG_L2_SRC || proc->lflags & DESSERT_RX_FLAG_L25_SRC) {
 		//dessert_info("dropping packets sent to myself");
 		return DESSERT_MSG_DROP;
 	}
 	
 	struct ether_header* l25h = dessert_msg_getl25ether(msg);
 	
-	if(proc->lflags.l25_multicast) {
+	if(proc->lflags & (DESSERT_RX_FLAG_L25_MULTICAST | DESSERT_RX_FLAG_L25_BROADCAST)) {
 		if(!lsr_db_broadcast_check_seq_nr(l25h->ether_shost, ntohs(msg->u16))) {
 			return DESSERT_MSG_DROP;
 		}
@@ -89,7 +89,7 @@ dessert_cb_result_t lsr_drop_errors(dessert_msg_t* msg, uint32_t len, dessert_ms
 
 //including broadcast
 dessert_cb_result_t lsr_forward_multicast(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
-	if(!proc->lflags.l25_multicast) {
+	if(!(proc->lflags & (DESSERT_RX_FLAG_L25_MULTICAST | DESSERT_RX_FLAG_L25_BROADCAST))) {
 		return DESSERT_MSG_KEEP;
 	}
 	
@@ -100,11 +100,11 @@ dessert_cb_result_t lsr_forward_multicast(dessert_msg_t* msg, uint32_t len, dess
 
 dessert_cb_result_t lsr_forward_unicast(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
 	//don't forward if we are the destination
-	if(proc->lflags.l25_dst) {
+	if(proc->lflags & DESSERT_RX_FLAG_L25_DST) {
 		return DESSERT_MSG_KEEP;
 	}
 	//don't forward if we are not the intended intermediate hop
-	if(!proc->lflags.l2_dst) {
+	if(!(proc->lflags & DESSERT_RX_FLAG_L2_DST)) {
 		return DESSERT_MSG_KEEP;
 	}
 	struct ether_header* l25h = dessert_msg_getl25ether(msg);
@@ -125,7 +125,7 @@ dessert_cb_result_t lsr_forward_unicast(dessert_msg_t* msg, uint32_t len, desser
 }
 
 dessert_cb_result_t lsr_mesh2sys(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
-	if((proc->lflags.l25_dst && !proc->lflags.l25_overheard) || proc->lflags.l25_multicast) {
+	if((proc->lflags & DESSERT_RX_FLAG_L25_DST && !(proc->lflags & DESSERT_RX_FLAG_L25_OVERHEARD)) || proc->lflags & (DESSERT_RX_FLAG_L25_MULTICAST | DESSERT_RX_FLAG_L25_BROADCAST)) {
 		dessert_syssend_msg(msg);
 		return DESSERT_MSG_DROP;
 	}
@@ -152,7 +152,7 @@ dessert_cb_result_t lsr_sys2mesh(dessert_msg_t *msg, uint32_t len, dessert_msg_p
 	msg->ttl = LSR_TTL_MAX;
 	
 	
-	if(proc->lflags.l25_multicast) {
+	if(proc->lflags & (DESSERT_RX_FLAG_L25_MULTICAST | DESSERT_RX_FLAG_L25_BROADCAST)) {
 		msg->u16 = htons(lsr_db_broadcast_get_seq_nr());
 		memcpy(msg->l2h.ether_dhost, ether_broadcast, ETH_ALEN);
 		dessert_result_t result = lsr_send_randomized(msg);
