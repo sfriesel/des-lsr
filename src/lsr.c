@@ -78,15 +78,14 @@ int main(int argc, char *argv[]) {
 	int size = 2;
 	const char **config_files = malloc(sizeof(*config_files) * size);
 	
-	dessert_status_flags_t init_flags = dessert_status_flags_init;
-	init_flags.daemonize = 1;
+	uint16_t init_flags = DESSERT_OPT_DAEMONIZE;
 	uint16_t logcfg_flags = 0;
 	
 	int c;
 	while((c = getopt (argc, argv, "nc:")) != -1) {
 		switch(c) {
 			case 'n':
-				init_flags.daemonize = 0;
+				init_flags &= ~DESSERT_OPT_DAEMONIZE;
 				logcfg_flags |= DESSERT_LOG_STDERR;
 				break;
 			case 'c':
