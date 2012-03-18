@@ -72,7 +72,7 @@ static void init_pipeline(void) {
 int main(int argc, char *argv[]) {
 	int used = 0;
 	int size = 2;
-	const char **config_files = malloc(sizeof(FILE *) * size);
+	const char **config_files = malloc(sizeof(*config_files) * size);
 	
 	dessert_status_flags_t init_flags = dessert_status_flags_init;
 	init_flags.daemonize = 0;
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'c':
 				if(used == size) {
-					config_files = realloc(config_files, size *= 2);
+					config_files = realloc(config_files, sizeof(*config_files) * (size *= 2));
 				}
 				config_files[used++] = optarg;
 				break;
