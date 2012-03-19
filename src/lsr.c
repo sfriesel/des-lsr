@@ -76,7 +76,8 @@ static void init_pipeline(void) {
 int main(int argc, char *argv[]) {
 	int used = 0;
 	int size = 2;
-	const char **config_files = malloc(sizeof(*config_files) * size);
+	const char **config_names = malloc(sizeof(*config_names) * size);
+	FILE **config_files = NULL;
 	
 	uint16_t init_flags = DESSERT_OPT_DAEMONIZE;
 	uint16_t logcfg_flags = 0;
@@ -90,9 +91,9 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'c':
 				if(used == size) {
-					config_files = realloc(config_files, sizeof(*config_files) * (size *= 2));
+					config_names = realloc(config_files, sizeof(*config_files) * (size *= 2));
 				}
-				config_files[used++] = optarg;
+				config_names[used++] = optarg;
 				break;
 			default:
 				exit(EXIT_FAILURE);
@@ -100,19 +101,28 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
+	//open config files before (possibly) daemonizing
+	config_files = malloc(sizeof(FILE *) * used);
+	int i;
+	for(i = 0; i < used; ++i) {
+		config_files[i] = fopen(config_names[i], "r");
+		if(!config_files[i]) {
+			dessert_err("could not open config file %s\n", config_names[i]);
+			exit(EXIT_FAILURE);
+		}
+	}
+	free(config_names);
+	
 	dessert_init("LSR", 0x03, init_flags);
 	dessert_logcfg(logcfg_flags);
 	init_cli();
 	dessert_cli_run();
 
-	for(int i = 0; i < used; ++i) {
-		FILE *cfg = fopen(config_files[i], "r");
-		if(!cfg) {
-			dessert_err("could not open config file %s\n", config_files[i]);
-			exit(EXIT_FAILURE);
-		}
-		cli_file(dessert_cli, cfg, PRIVILEGE_PRIVILEGED, MODE_CONFIG);
+	for(i = 0; i < used; ++i) {
+		cli_file(dessert_cli, config_files[i], PRIVILEGE_PRIVILEGED, MODE_CONFIG);
+		fclose(config_files[i]);
 	}
+	free(config_files);
 
 	init_pipeline();
 	init_periodics();
