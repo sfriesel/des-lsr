@@ -43,10 +43,11 @@ dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int
 			}
 		}
 		if(j >= out_used) {
-			out_used++;
-			if(out_used >= out_size) {
-				out = realloc(out, out_size *= 2);
+			if(out_used == out_size) {
+				out_size *= 2;
+				out = realloc(out, out_size * sizeof(*out));
 			}
+			out_used++;
 		}
 		mac_copy(out[j].addr, neighbor->node->addr);
 		out[j].lifetime = lifetime;
