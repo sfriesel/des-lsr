@@ -197,24 +197,24 @@ const char *lsr_node_to_string_header(void) {
 char *lsr_node_to_route_string(node_t *this) {
 	int bufSize = 22;
 	char *buf = malloc(bufSize);
-	int tmp;
+	char *iter = buf;
 
-	tmp = snprintf(buf, 10, "%02hhx%02hhx%02hhx | ", this->addr[3], this->addr[4], this->addr[5]);
-	assert(tmp == 9);
+	iter += snprintf(buf, 10, "%02hhx%02hhx%02hhx | ", this->addr[3], this->addr[4], this->addr[5]);
+	assert(iter = buf + 9);
 	if(this->next_hop)
-		tmp = snprintf(buf + 9, 10, "%02hhx%02hhx%02hhx | ", this->next_hop->node->addr[3], this->next_hop->node->addr[4], this->next_hop->node->addr[5]);
+		iter += snprintf(iter, 10, "%02hhx%02hhx%02hhx | ", this->next_hop->node->addr[3], this->next_hop->node->addr[4], this->next_hop->node->addr[5]);
 	else
-		tmp = snprintf(buf + 9, 10, "<null> | ");
-	assert(tmp == 9);
+		iter += snprintf(iter, 10, "<null> | ");
+	assert(iter == buf + 18);
 	if(this->next_hop) {
-		if(this-> weight < 99)
-			tmp = snprintf(buf + 18, 4, "%3jd", (uintmax_t)this->weight);
+		if(this-> weight <= 99)
+			iter += snprintf(iter, 4, "%3jd", (uintmax_t)this->weight);
 		else
-			tmp = snprintf(buf + 18, 4, ">99");
+			iter += snprintf(iter, 4, ">99");
 	}
 	else
-		tmp = snprintf(buf + 18, 4, "inf");
-	assert(tmp == 3);
+		iter += snprintf(iter, 4, "inf");
+	assert(iter < buf + bufSize);
 	
 	return buf;
 }
