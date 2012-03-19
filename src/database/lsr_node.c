@@ -195,23 +195,23 @@ const char *lsr_node_to_string_header(void) {
 }
 
 char *lsr_node_to_route_string(node_t *this) {
-	int bufSize = 51;
+	int bufSize = 25;
 	char *buf = malloc(bufSize);
 	char *iter = buf;
 
-	iter += sprintf(iter, MAC " | ", EXPLODE_ARRAY6(this->addr));
+	iter += sprintf(iter, "%02hhx%02hhx%02hhx | ", this->addr[3], this->addr[4], this->addr[5]);
 	if(this->next_hop) {
-		iter += sprintf(iter, MAC, EXPLODE_ARRAY6(this->next_hop->node->addr));
+		iter += sprintf(iter, "%02hhx%02hhx%02hhx", this->next_hop->node->addr[3], this->next_hop->node->addr[4], this->next_hop->node->addr[5]);
 	} else {
-		iter += sprintf(iter, "%17s", "<null>");
+		iter += sprintf(iter, "%6s", "<null>");
 	}
-	iter += sprintf(iter, " | %11jd", (intmax_t)this->weight);
+	iter += sprintf(iter, " | %6jd", (intmax_t)this->weight);
 	assert(iter <= buf + bufSize);
 	return buf;
 }
 
 const char *lsr_node_to_route_string_header(void) {
-	static const char *header = "destination       | next hop          | path weight";
+	static const char *header = "dest   | nexthop| weight";
 	return header;
 }
 

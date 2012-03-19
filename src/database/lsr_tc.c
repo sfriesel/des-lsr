@@ -170,12 +170,13 @@ dessert_result_t lsr_tc_dijkstra() {
 		}
 	}
 	char *out = lsr_tc_nodeset_to_route_string(";");
-	dessert_info("$RT %s", out);
+	dessert_info("%s", out);
+	free(out);
 	return DESSERT_OK;
 }
 
 char *lsr_tc_nodeset_to_string(const char *delim) {
-	int size = 1024;
+	int size = 4096;
 	char *buf = malloc(size);
 	buf[0] = '\0';
 	int used = 0;
@@ -192,7 +193,7 @@ char *lsr_tc_nodeset_to_string(const char *delim) {
 }
 
 char *lsr_tc_nodeset_to_route_string(const char *delim) {
-	int size = 1024;
+	int size = 4096;
 	char *buf = malloc(size);
 	buf[0] = '\0';
 	int used = 0;
