@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
 	dessert_init("LSR", 0x03, init_flags);
 	dessert_logcfg(logcfg_flags);
 	init_cli();
-	dessert_cli_run();
+	//dessert_cli_run();
 
 	for(i = 0; i < used; ++i) {
 		cli_file(dessert_cli, config_files[i], PRIVILEGE_PRIVILEGED, MODE_CONFIG);
