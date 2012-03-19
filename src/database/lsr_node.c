@@ -178,7 +178,7 @@ bool lsr_node_check_unicast_seq_nr(node_t *node, uint16_t seq_nr) {
 char *lsr_node_to_string(node_t *this) {
 	int bufSize = 90;
 	char *buf = malloc(bufSize);
-	int l = snprintf(buf, bufSize, MAC " | %10.10jd.%06.6jd | %16.16jd | %16.16jd | %11.11jd",
+	int l = snprintf(buf, bufSize, MAC " | %10jd.%06jd | %16jd | %16jd | %11jd",
 	                 EXPLODE_ARRAY6(this->addr),
 	                 (intmax_t)this->timeout.tv_sec,
 	                 (intmax_t)this->timeout.tv_usec,
@@ -195,25 +195,32 @@ const char *lsr_node_to_string_header(void) {
 }
 
 char *lsr_node_to_route_string(node_t *this) {
-	int bufSize = 25;
+	int bufSize = 22;
 	char *buf = malloc(bufSize);
-	char *iter = buf;
+	int tmp;
 
-	iter += sprintf(iter, "%02hhx%02hhx%02hhx | ", this->addr[3], this->addr[4], this->addr[5]);
+	tmp = snprintf(buf, 10, "%02hhx%02hhx%02hhx | ", this->addr[3], this->addr[4], this->addr[5]);
+	assert(tmp == 9);
+	if(this->next_hop)
+		tmp = snprintf(buf + 9, 10, "%02hhx%02hhx%02hhx | ", this->next_hop->node->addr[3], this->next_hop->node->addr[4], this->next_hop->node->addr[5]);
+	else
+		tmp = snprintf(buf + 9, 10, "<null> | ");
+	assert(tmp == 9);
 	if(this->next_hop) {
-		iter += sprintf(iter, "%02hhx%02hhx%02hhx", this->next_hop->node->addr[3], this->next_hop->node->addr[4], this->next_hop->node->addr[5]);
-		iter += sprintf(iter, " | %6.6jd", (intmax_t)this->weight);
-	} else {
-		iter += sprintf(iter, "%6.6s", "<null>");
-		iter += sprintf(iter, " | %6.6s", "inf");
+		if(this-> weight < 99)
+			tmp = snprintf(buf + 18, 4, "%3jd", (uintmax_t)this->weight);
+		else
+			tmp = snprintf(buf + 18, 4, ">99");
 	}
+	else
+		tmp = snprintf(buf + 18, 4, "inf");
+	assert(tmp == 3);
 	
-	assert(iter <= buf + bufSize);
 	return buf;
 }
 
 const char *lsr_node_to_route_string_header(void) {
-	static const char *header = "dest   | nexthop| weight";
+	static const char *header = "dest   | nexthop| wgt";
 	return header;
 }
 
