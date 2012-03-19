@@ -178,7 +178,7 @@ bool lsr_node_check_unicast_seq_nr(node_t *node, uint16_t seq_nr) {
 char *lsr_node_to_string(node_t *this) {
 	int bufSize = 90;
 	char *buf = malloc(bufSize);
-	int l = snprintf(buf, bufSize, MAC " | %10jd.%06jd | %16jd | %16jd | %11jd",
+	int l = snprintf(buf, bufSize, MAC " | %10.10jd.%06.6jd | %16.16jd | %16.16jd | %11.11jd",
 	                 EXPLODE_ARRAY6(this->addr),
 	                 (intmax_t)this->timeout.tv_sec,
 	                 (intmax_t)this->timeout.tv_usec,
@@ -202,10 +202,12 @@ char *lsr_node_to_route_string(node_t *this) {
 	iter += sprintf(iter, "%02hhx%02hhx%02hhx | ", this->addr[3], this->addr[4], this->addr[5]);
 	if(this->next_hop) {
 		iter += sprintf(iter, "%02hhx%02hhx%02hhx", this->next_hop->node->addr[3], this->next_hop->node->addr[4], this->next_hop->node->addr[5]);
+		iter += sprintf(iter, " | %6.6jd", (intmax_t)this->weight);
 	} else {
-		iter += sprintf(iter, "%6s", "<null>");
+		iter += sprintf(iter, "%6.6s", "<null>");
+		iter += sprintf(iter, " | %6.6s", "inf");
 	}
-	iter += sprintf(iter, " | %6jd", (intmax_t)this->weight);
+	
 	assert(iter <= buf + bufSize);
 	return buf;
 }
