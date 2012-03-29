@@ -11,7 +11,7 @@ static neighbor_t *nt = NULL;
 static uint8_t timeout2lifetime(struct timeval *timeout, struct timeval *now) {
 	if(dessert_timevalcmp(timeout, now) < 0)
 		return -1;
-	uint64_t diff = dessert_timeval2ms(timeout) - dessert_timeval2ms(now);
+	uintmax_t diff = dessert_timeval2ms(timeout) - dessert_timeval2ms(now);
 	uintmax_t result = diff / tc_interval;
 	if(result > UINT8_MAX) {
 		result = UINT8_MAX;

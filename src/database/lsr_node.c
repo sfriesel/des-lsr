@@ -49,10 +49,6 @@ void lsr_node_delete(node_t *this) {
 	free(this);
 }
 
-int lsr_node_cmp(node_t *left, node_t *right) {
-	return memcmp(left->addr, right->addr, ETH_ALEN);
-}
-
 void lsr_node_set_timeout(node_t *this, struct timeval timeout) {
 	this->timeout = timeout;
 }

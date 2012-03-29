@@ -6,27 +6,17 @@
 #include <string.h>
 
 typedef struct tc_ext {
-	uint8_t addr[ETH_ALEN];
+	mac_addr addr;
 	uint8_t age;
 	uint8_t weight;
 } __attribute__((__packed__)) tc_ext_t;
 
 int lsr_send_randomized(dessert_msg_t *msg) {
-	if(msg->ttl) {
-		return dessert_meshsend_randomized(msg);
-	}
-	else {
-		return DESSERT_ERR;
-	}
+	return msg->ttl ? dessert_meshsend_randomized(msg) : return DESSERT_ERR;
 }
 
 int lsr_send(dessert_msg_t *msg, dessert_meshif_t *iface) {
-	if(msg->ttl) {
-		return dessert_meshsend(msg, iface);
-	}
-	else {
-		return DESSERT_ERR;
-	}
+	return msg->ttl ? dessert_meshsend(msg, iface) : return DESSERT_ERR;
 }
 
 dessert_cb_result_t lsr_process_ttl(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
@@ -45,7 +35,7 @@ dessert_cb_result_t lsr_process_tc(dessert_msg_t* msg, uint32_t len, dessert_msg
 
 	struct ether_header* l25h = dessert_msg_getl25ether(msg);
 	
-	dessert_debug("TC\t" MAC, l25h->ether_shost);
+	dessert_trace("TC from " MAC, l25h->ether_shost);
 	
 	//if tc travelled exactly one hop, also handle as hello packet
 	if(msg->u8 == 1) {
