@@ -12,11 +12,11 @@ typedef struct tc_ext {
 } __attribute__((__packed__)) tc_ext_t;
 
 int lsr_send_randomized(dessert_msg_t *msg) {
-	return msg->ttl ? dessert_meshsend_randomized(msg) : return DESSERT_ERR;
+	return msg->ttl ? dessert_meshsend_randomized(msg) : DESSERT_ERR;
 }
 
 int lsr_send(dessert_msg_t *msg, dessert_meshif_t *iface) {
-	return msg->ttl ? dessert_meshsend(msg, iface) : return DESSERT_ERR;
+	return msg->ttl ? dessert_meshsend(msg, iface) : DESSERT_ERR;
 }
 
 dessert_cb_result_t lsr_process_ttl(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {

@@ -20,6 +20,7 @@ static uint8_t timeout2lifetime(struct timeval *timeout, struct timeval *now) {
 }
 
 dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int * const neighbor_count) {
+	lsr_nt_age_all();
 	// circular list of edges pointing to l25 neighbor nodes
 	int out_size = 16;
 	neighbor_info_t *out = calloc(out_size, sizeof(neighbor_info_t));

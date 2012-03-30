@@ -74,7 +74,8 @@ dessert_result_t lsr_db_get_next_hop(mac_addr dest_addr, mac_addr *next_hop, des
 
 dessert_result_t lsr_db_rt_regenerate(void) {
 	pthread_rwlock_wrlock(&db_lock);
-	dessert_result_t result = lsr_tc_dijkstra();
+	dessert_result_t result  = lsr_tc_age_all();
+	                 result &= lsr_tc_dijkstra();
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }

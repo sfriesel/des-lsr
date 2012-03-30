@@ -64,12 +64,3 @@ dessert_per_result_t lsr_periodic_rebuild_rt(void *data, struct timeval *schedul
 	return DESSERT_PER_KEEP;
 }
 
-dessert_per_result_t age_neighbors(void *data, struct timeval *scheduled, struct timeval *interval) {
-	lsr_db_nt_age_all();
-	return DESSERT_PER_KEEP;
-}
-
-dessert_per_result_t age_nodes(void *data, struct timeval *scheduled, struct timeval *interval) {
-	lsr_db_tc_age_all();
-	return DESSERT_PER_KEEP;
-}

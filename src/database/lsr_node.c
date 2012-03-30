@@ -28,7 +28,7 @@ node_t *lsr_node_new(mac_addr addr) {
 bool lsr_node_age(node_t *this, const struct timeval *now) {
 	//remove all outdated neighbor edges
 	for(int i = 0; i < this->neighbor_count; ++i) {
-		if(dessert_timevalcmp(now, &this->neighbors[i].timeout) < 0) {
+		if(dessert_timevalcmp(now, &this->neighbors[i].timeout) >= 0) {
 			this->neighbor_count--;
 			//copy the last array element into the gap
 			this->neighbors[i] = this->neighbors[this->neighbor_count];
@@ -36,7 +36,7 @@ bool lsr_node_age(node_t *this, const struct timeval *now) {
 	}
 	// if node has no next_hop, it's not referenced
 	// as neighbor of any reachable node
-	if(dessert_timevalcmp(now, &this->timeout) < 0 && !this->next_hop) {
+	if(dessert_timevalcmp(now, &this->timeout) >= 0 && !this->next_hop) {
 		return true;
 	}
 	return false;
