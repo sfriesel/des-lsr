@@ -91,6 +91,7 @@ void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval tim
 	this->neighbors[i].weight = weight;
 }
 
+#if 0
 static int gap_insert_index(struct seq_interval *gaps, uint16_t seq_nr){
 	int insert_index = 0;
 	for(int i = 0; i < GAP_COUNT; ++i) {
@@ -121,6 +122,7 @@ static void split_gap(struct seq_interval *gaps, uint64_t x, int index, uint16_t
 	gaps[insert_index].end = x;
 	gaps[index].start = x + 1;
 }
+#endif
 
 static uint64_t guess_seq_nr(uint64_t old, uint16_t new) {
 	uint64_t guess = new;
@@ -136,6 +138,9 @@ static uint64_t guess_seq_nr(uint64_t old, uint16_t new) {
 
 static bool check_seq_nr(uint64_t *old, struct seq_interval *gaps, uint16_t seq_nr) {
 	uint64_t guess = guess_seq_nr(*old, seq_nr);
+	return guess > *old;
+	
+	#if 0
 	if(guess > *old) {
 		if(guess > *old + 1) { //need to create a new gap
 			if(guess > *old + SEQ_NR_THRESHOLD) { //seq nr made a big jump -- invalidate old gaps
@@ -155,6 +160,7 @@ static bool check_seq_nr(uint64_t *old, struct seq_interval *gaps, uint16_t seq_
 		}
 	}
 	return false;
+	#endif
 }
 
 bool lsr_node_check_broadcast_seq_nr(node_t *node, uint16_t seq_nr) {
