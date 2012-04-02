@@ -138,7 +138,13 @@ static uint64_t guess_seq_nr(uint64_t old, uint16_t new) {
 
 static bool check_seq_nr(uint64_t *old, struct seq_interval *gaps, uint16_t seq_nr) {
 	uint64_t guess = guess_seq_nr(*old, seq_nr);
-	return guess > *old;
+	if(guess > *old) {
+		*old = guess;
+		return true;
+	}
+	else {
+		return false;
+	}
 	
 	#if 0
 	if(guess > *old) {
