@@ -44,7 +44,11 @@ static dessert_per_result_t lsr_periodic_send_tc_with_ttl(uint8_t ttl, uint64_t 
 		tc_element[i].weight = neighbor_list[i].weight;
 	}
 	free(neighbor_list);
-
+	
+	char buf[2048];
+	dessert_msg_dump(tc, 0, buf, sizeof(buf));
+	dessert_trace("sending tc %s", buf);
+	
 	lsr_send_randomized(tc);
 	dessert_msg_destroy(tc);
 	return DESSERT_PER_KEEP;
@@ -52,6 +56,7 @@ static dessert_per_result_t lsr_periodic_send_tc_with_ttl(uint8_t ttl, uint64_t 
 
 dessert_per_result_t lsr_periodic_send_hello_tc(void *data, struct timeval *scheduled, struct timeval *interval) {
 	uint64_t seq = lsr_db_broadcast_get_seq_nr();
+	//FIXME: own sequence number for modulo
 	if(seq % tc_ratio) {
 		return lsr_periodic_send_tc_with_ttl(1, seq);
 	} else {
