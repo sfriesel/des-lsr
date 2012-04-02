@@ -43,7 +43,7 @@ dessert_result_t lsr_tc_update_node(mac_addr node_addr, uint16_t seq_nr) {
 
 dessert_result_t lsr_tc_update_node_neighbor(mac_addr node_addr, mac_addr neighbor_addr, uint8_t lifetime, uint8_t weight) {
 	node_t *node = lsr_tc_get_or_create_node(node_addr);
-	node_t * neighbor = lsr_tc_get_or_create_node(neighbor_addr);
+	node_t *neighbor = lsr_tc_get_or_create_node(neighbor_addr);
 	
 	lsr_node_update_neighbor(node, neighbor, lsr_tc_calc_timeout(lifetime), weight);
 	
@@ -51,18 +51,14 @@ dessert_result_t lsr_tc_update_node_neighbor(mac_addr node_addr, mac_addr neighb
 }
 
 bool lsr_tc_check_unicast_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
-	node_t *node = lsr_tc_get_node(node_addr);
-	if (!node) {
-		return true;
-	}
+	node_t *node = lsr_tc_get_or_create_node(node_addr);
+	
 	return lsr_node_check_unicast_seq_nr(node, seq_nr);
 }
 
 bool lsr_tc_check_broadcast_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
-	node_t *node = lsr_tc_get_node(node_addr);
-	if (!node) {
-		return true;
-	}
+	node_t *node = lsr_tc_get_or_create_node(node_addr);
+	
 	return lsr_node_check_broadcast_seq_nr(node, seq_nr);
 }
 
