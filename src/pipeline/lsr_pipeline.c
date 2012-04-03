@@ -39,16 +39,18 @@ dessert_cb_result_t lsr_process_tc(dessert_msg_t* msg, uint32_t len, dessert_msg
 	
 	//if tc travelled exactly one hop, also handle as hello packet
 	if(msg->u8 == 1) {
-		lsr_db_nt_update(msg->l2h.ether_shost, l25h->ether_shost, iface, ntohs(msg->u16));
+		struct timeval now;
+		gettimeofday(&now, NULL);
+		lsr_db_nt_update(msg->l2h.ether_shost, l25h->ether_shost, iface, ntohs(msg->u16), now);
 	}
 	
-	lsr_db_tc_update(l25h->ether_shost, ntohs(msg->u16));
+	node_t *node = lsr_db_tc_update(l25h->ether_shost, ntohs(msg->u16));
 	
 	int neigh_count = (ext->len - DESSERT_EXTLEN)/sizeof(tc_ext_t);
 	tc_ext_t *tc_data = (tc_ext_t*) ext->data;
 	// add NH to RT
 	for(int i = 0; i < neigh_count; ++i) {
-		lsr_db_tc_neighbor_update(l25h->ether_shost, tc_data[i].addr, tc_data[i].age, tc_data[i].weight);
+		lsr_db_tc_neighbor_update(node, tc_data[i].addr, tc_data[i].age, tc_data[i].weight);
 	}
 	lsr_send_randomized(msg); // resend TC packet
 	

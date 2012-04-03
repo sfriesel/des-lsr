@@ -76,8 +76,8 @@ struct timeval lsr_nt_calc_timeout(void) {
 	return timeout;
 }
 
-dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint16_t seq_nr, uint8_t weight) {
-	node_t *node = lsr_tc_get_or_create_node(neighbor_l25);
+dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint16_t seq_nr, uint8_t weight, struct timeval now) {
+	node_t *node = lsr_tc_get_or_create_node(neighbor_l25, now);
 	
 	neighbor_t *neighbor = NULL;
 	HASH_FIND(hh, nt, neighbor_l2, ETH_ALEN, neighbor);

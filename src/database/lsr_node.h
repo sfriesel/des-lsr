@@ -19,7 +19,7 @@ typedef struct node {
 	uint8_t neighbor_count;              //number of entries in neighbors
 } node_t;
 
-node_t *lsr_node_new(mac_addr addr);
+node_t *lsr_node_new(mac_addr addr, struct timeval timeout);
 bool lsr_node_age(node_t *this, const struct timeval *now);
 void lsr_node_delete(node_t *this);
 void lsr_node_set_timeout(node_t *this, struct timeval timeout);

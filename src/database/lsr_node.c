@@ -7,12 +7,11 @@
 
 static const uint64_t SEQ_NR_THRESHOLD = 500; //consider sequence numbers of at most threshold smaller then the current as older
 
-node_t *lsr_node_new(mac_addr addr) {
+node_t *lsr_node_new(mac_addr addr, struct timeval timeout) {
 	node_t *this = calloc(1, sizeof(*this));
 	this->multicast_seq_nr = 0;
 	this->unicast_seq_nr = 0;
-	this->timeout.tv_sec = INT32_MAX;
-	this->timeout.tv_usec = 999999;
+	this->timeout = timeout;
 	this->neighbors = NULL;
 	this->next_hop = NULL;
 	this->weight = INFINITE_WEIGHT;

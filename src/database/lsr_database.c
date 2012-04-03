@@ -16,23 +16,23 @@ dessert_result_t lsr_db_dump_neighbor_table(neighbor_info_t **result_out, int *n
 	return result;
 }
 
-dessert_result_t lsr_db_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint16_t seq_nr) {
+dessert_result_t lsr_db_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint16_t seq_nr, struct timeval receive_time) {
 	pthread_rwlock_wrlock(&db_lock);
-	dessert_result_t result = lsr_nt_update(neighbor_l2, neighbor_l25, iface, seq_nr, DEFAULT_WEIGHT);
+	dessert_result_t result = lsr_nt_update(neighbor_l2, neighbor_l25, iface, seq_nr, DEFAULT_WEIGHT, receive_time);
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }
 
-dessert_result_t lsr_db_tc_update(mac_addr node_addr, uint16_t seq_nr) {
+node_t *lsr_db_tc_update(mac_addr node_addr, uint16_t seq_nr) {
 	pthread_rwlock_wrlock(&db_lock);
-	dessert_result_t result = lsr_tc_update_node(node_addr, seq_nr);
+	node_t *result = lsr_tc_update_node(node_addr, seq_nr);
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }
 
-dessert_result_t lsr_db_tc_neighbor_update(mac_addr node_addr, mac_addr neighbor_addr, uint8_t age, uint8_t weight) {
+dessert_result_t lsr_db_tc_neighbor_update(node_t *node, mac_addr neighbor_addr, uint8_t age, uint8_t weight) {
 	pthread_rwlock_wrlock(&db_lock);
-	dessert_result_t result = lsr_tc_update_node_neighbor(node_addr, neighbor_addr, age, weight);
+	dessert_result_t result = lsr_tc_update_node_neighbor(node, neighbor_addr, age, weight);
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }

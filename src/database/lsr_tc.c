@@ -6,8 +6,8 @@
 //the set of all currently known nodes
 static node_t *node_set = NULL;
 
-node_t *lsr_tc_create_node(mac_addr addr) {
-	node_t *node = lsr_node_new(addr);
+node_t *lsr_tc_create_node(mac_addr addr, struct timeval timeout) {
+	node_t *node = lsr_node_new(addr, timeout);
 	HASH_ADD_KEYPTR(hh, node_set, node->addr, ETH_ALEN, node);
 	return node;
 }
@@ -18,46 +18,48 @@ node_t *lsr_tc_get_node(mac_addr addr) {
 	return node;
 }
 
-node_t *lsr_tc_get_or_create_node(mac_addr addr) {
+node_t *lsr_tc_get_or_create_node(mac_addr addr, struct timeval timeout) {
 	node_t *node = lsr_tc_get_node(addr);
 	if(!node) {
-		node = lsr_tc_create_node(addr);
+		node = lsr_tc_create_node(addr, timeout);
 	}
 	return node;
 }
 
 struct timeval lsr_tc_calc_timeout(uint8_t lifetime) {
-	uint32_t lifetime_ms = lifetime * tc_interval;
+	struct timeval lifetime_tv;
+	dessert_ms2timeval(lifetime * tc_interval, &lifetime_tv);
 	struct timeval timeout;
 	gettimeofday(&timeout, NULL);
-	dessert_timevaladd(&timeout, lifetime_ms / 1000, (lifetime_ms % 1000) * 1000);
+	dessert_timevaladd2(&timeout, &timeout, &lifetime_tv);
 	return timeout;
 }
 
-dessert_result_t lsr_tc_update_node(mac_addr node_addr, uint16_t seq_nr) {
-	node_t *node = lsr_tc_get_or_create_node(node_addr);
-	lsr_node_set_timeout(node, lsr_tc_calc_timeout(node_lifetime));
-	
-	return DESSERT_OK;
+node_t *lsr_tc_update_node(mac_addr node_addr, uint16_t seq_nr) {
+	struct timeval timeout = lsr_tc_calc_timeout(node_lifetime);
+	node_t *node = lsr_tc_get_node(node_addr);
+	if(node)
+		lsr_node_set_timeout(node, timeout);
+	else
+		lsr_tc_create_node(node_addr, timeout);
+	return node;
 }
 
-dessert_result_t lsr_tc_update_node_neighbor(mac_addr node_addr, mac_addr neighbor_addr, uint8_t lifetime, uint8_t weight) {
-	node_t *node = lsr_tc_get_or_create_node(node_addr);
-	node_t *neighbor = lsr_tc_get_or_create_node(neighbor_addr);
-	
-	lsr_node_update_neighbor(node, neighbor, lsr_tc_calc_timeout(lifetime), weight);
-	
+dessert_result_t lsr_tc_update_node_neighbor(node_t *node, mac_addr neighbor_addr, uint8_t lifetime, uint8_t weight) {
+	struct timeval ngbr_timeout = lsr_tc_calc_timeout(lifetime);
+	node_t *neighbor = lsr_tc_get_or_create_node(neighbor_addr, ngbr_timeout);
+	lsr_node_update_neighbor(node, neighbor, ngbr_timeout, weight);
 	return DESSERT_OK;
 }
 
 bool lsr_tc_check_unicast_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
-	node_t *node = lsr_tc_get_or_create_node(node_addr);
+	node_t *node = lsr_tc_get_or_create_node(node_addr, lsr_tc_calc_timeout(node_lifetime));
 	
 	return lsr_node_check_unicast_seq_nr(node, seq_nr);
 }
 
 bool lsr_tc_check_broadcast_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
-	node_t *node = lsr_tc_get_or_create_node(node_addr);
+	node_t *node = lsr_tc_get_or_create_node(node_addr, lsr_tc_calc_timeout(node_lifetime));
 	
 	return lsr_node_check_broadcast_seq_nr(node, seq_nr);
 }
@@ -125,7 +127,7 @@ dessert_result_t lsr_tc_dijkstra() {
 		}
 	}
 	else { //initialize node_set with this node
-		node_set = lsr_tc_create_node(dessert_l25_defsrc);
+		node_set = lsr_tc_create_node(dessert_l25_defsrc, (struct timeval){UINT32_MAX, 999999});
 	}
 	node_set->weight = 0;
 	
