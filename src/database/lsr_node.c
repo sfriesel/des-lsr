@@ -29,6 +29,7 @@ bool lsr_node_age(node_t *this, const struct timeval *now) {
 	//remove all outdated neighbor edges
 	for(int i = 0; i < this->neighbor_count; ++i) {
 		if(dessert_timevalcmp(now, &this->neighbors[i].timeout) >= 0) {
+			dessert_trace("connection from node " MAC " to ngbr " MAC " timed out", this->addr, this->neighbors[i].node->addr);
 			this->neighbor_count--;
 			//copy the last array element into the gap
 			this->neighbors[i] = this->neighbors[this->neighbor_count];
