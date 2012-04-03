@@ -38,10 +38,19 @@ dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int
 			continue;
 		}
 		int j;
+		bool discard = false;
 		for(j = 0; j < out_used; ++j) {
-			if(mac_equal(neighbor->node->addr, out[j].addr) && neighbor->weight < out[j].weight) {
-				break;
+			if(mac_equal(neighbor->node->addr, out[j].addr)) {
+				if(neighbor->weight < out[j].weight) {
+					break;
+				}
+				else {
+					discard = true;
+				}
 			}
+		}
+		if(discard) {
+			continue;
 		}
 		if(j >= out_used) {
 			if(out_used == out_size) {
@@ -86,7 +95,7 @@ dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dess
 }
 
 dessert_result_t lsr_nt_age(neighbor_t *neighbor, const struct timeval *now) {
-	if(dessert_timevalcmp(now, &neighbor->timeout) < 0) {
+	if(dessert_timevalcmp(now, &neighbor->timeout) >= 0) {
 		HASH_DEL(nt, neighbor);
 		free(neighbor);
 	}
