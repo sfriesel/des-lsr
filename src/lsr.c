@@ -60,12 +60,11 @@ dessert_cb_result_t lsr_msg_flags_sys_cb(dessert_msg_t *msg, uint32_t len, desse
 static void init_pipeline(void) {
 	dessert_sysrxcb_add(lsr_msg_flags_sys_cb, 5);
 	dessert_sysrxcb_add(lsr_loopback, 10);
-	dessert_sysrxcb_add(lsr_sys2mesh, 15);
+	//dessert_sysrxcb_add(lsr_sys2mesh, 15);
 	
 	dessert_meshrxcb_add(dessert_msg_ifaceflags_cb, 10);
 	dessert_meshrxcb_add(lsr_process_ttl, 20);
 	dessert_meshrxcb_add(lsr_drop_errors, 30);
-	dessert_meshrxcb_add(dessert_msg_dump_cb, 35);
 	//dessert_meshrxcb_add(lsr_process_hello, 40);
 	dessert_meshrxcb_add(lsr_process_tc, 50);
 	dessert_meshrxcb_add(lsr_forward_multicast, 55);

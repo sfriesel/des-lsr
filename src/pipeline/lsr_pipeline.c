@@ -66,7 +66,6 @@ dessert_cb_result_t lsr_drop_errors(dessert_msg_t* msg, uint32_t len, dessert_ms
 	
 	if(proc->lflags & (DESSERT_RX_FLAG_L25_MULTICAST | DESSERT_RX_FLAG_L25_BROADCAST)) {
 		if(!lsr_db_broadcast_check_seq_nr(l25h->ether_shost, ntohs(msg->u16))) {
-			dessert_trace("dropping old multicast");
 			return DESSERT_MSG_DROP;
 		}
 	} else {
