@@ -10,8 +10,6 @@ typedef struct node {
 	uint64_t multicast_seq_nr;           //the highest seen multicast sequence number of this node
 	uint64_t unicast_seq_nr;             //the highest seen unicast sequence number of this node
 	struct timeval timeout;              //time when this node info becomes stale and should be removed
-	struct seq_interval *multicast_gaps; //list multicast seq id's of this not seen yet, but close before multicast_seq_nr
-	struct seq_interval *unicast_gaps;   //list unicast seq id's of this not seen yet, but close before unicast_seq_nr
 	struct edge *neighbors;              //list of edges pointing to neighboring nodes (accordings to the node's TC)
 	struct neighbor *next_hop;           //the level 2 hop which should be used for forwarding to this node
 	uint32_t weight;                     //total weight of the route to this node

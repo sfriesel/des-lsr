@@ -13,8 +13,6 @@ node_t *lsr_node_new(mac_addr addr) {
 	this->unicast_seq_nr = 0;
 	this->timeout.tv_sec = INT32_MAX;
 	this->timeout.tv_usec = 999999;
-	this->multicast_gaps = NULL;
-	this->unicast_gaps = NULL;
 	this->neighbors = NULL;
 	this->next_hop = NULL;
 	this->weight = INFINITE_WEIGHT;
@@ -44,8 +42,6 @@ bool lsr_node_age(node_t *this, const struct timeval *now) {
 }
 
 void lsr_node_delete(node_t *this) {
-	free(this->multicast_gaps);
-	free(this->unicast_gaps);
 	free(this->neighbors);
 	free(this);
 }
@@ -92,39 +88,6 @@ void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval tim
 	this->neighbors[i].weight = weight;
 }
 
-#if 0
-static int gap_insert_index(struct seq_interval *gaps, uint16_t seq_nr){
-	int insert_index = 0;
-	for(int i = 0; i < GAP_COUNT; ++i) {
-		if(gaps[i].start == gaps[i].end) {
-			insert_index = i;
-			break;
-		}
-		if(seq_nr - gaps[i].start < seq_nr - gaps[insert_index].start) {
-			insert_index = i;
-		}
-	}
-	return insert_index;
-}
-
-static void split_gap(struct seq_interval *gaps, uint64_t x, int index, uint16_t seq_nr) {
-	if(x == gaps[index].start) {
-		gaps[index].start = x + 1;
-		return;
-	}
-	if(x == gaps[index].end - 1U) {
-		gaps[index].end = x;
-		return;
-	}
-	
-	int insert_index = gap_insert_index(gaps, seq_nr);
-	
-	gaps[insert_index].start = gaps[index].start;
-	gaps[insert_index].end = x;
-	gaps[index].start = x + 1;
-}
-#endif
-
 static uint64_t guess_seq_nr(uint64_t old, uint16_t new) {
 	uint64_t guess = new;
 	if(guess >= old) {
@@ -137,7 +100,7 @@ static uint64_t guess_seq_nr(uint64_t old, uint16_t new) {
 	return guess;
 }
 
-static bool check_seq_nr(uint64_t *old, struct seq_interval *gaps, uint16_t seq_nr) {
+static bool check_seq_nr(uint64_t *old, uint16_t seq_nr) {
 	uint64_t guess = guess_seq_nr(*old, seq_nr);
 	if(guess > *old) {
 		*old = guess;
@@ -146,42 +109,14 @@ static bool check_seq_nr(uint64_t *old, struct seq_interval *gaps, uint16_t seq_
 	else {
 		return false;
 	}
-	
-	#if 0
-	if(guess > *old) {
-		if(guess > *old + 1) { //need to create a new gap
-			if(guess > *old + SEQ_NR_THRESHOLD) { //seq nr made a big jump -- invalidate old gaps
-				memset(gaps, 0, GAP_COUNT * sizeof(struct seq_interval));
-			}
-			int insert_index = gap_insert_index(gaps, seq_nr);
-			gaps[insert_index].start = *old + 1;
-			gaps[insert_index].end = guess;
-		}
-		*old = guess;
-		return true;
-	}
-	for(int i = 0; i < GAP_COUNT; ++i) {
-		if(gaps[i].start <= guess && gaps[i].end > guess) {
-			split_gap(gaps, guess, i, seq_nr);
-			return true;
-		}
-	}
-	return false;
-	#endif
 }
 
 bool lsr_node_check_broadcast_seq_nr(node_t *node, uint16_t seq_nr) {
-	if(!node->multicast_gaps) {
-		node->multicast_gaps = calloc(GAP_COUNT, sizeof(struct seq_interval));
-	}
-	return check_seq_nr(&(node->multicast_seq_nr), node->multicast_gaps, seq_nr);
+	return check_seq_nr(&(node->multicast_seq_nr), seq_nr);
 }
 
 bool lsr_node_check_unicast_seq_nr(node_t *node, uint16_t seq_nr) {
-	if(!node->unicast_gaps) {
-		node->unicast_gaps = calloc(GAP_COUNT, sizeof(struct seq_interval));
-	}
-	return check_seq_nr(&(node->unicast_seq_nr), node->unicast_gaps, seq_nr);
+	return check_seq_nr(&(node->unicast_seq_nr), seq_nr);
 }
 
 char *lsr_node_to_string(node_t *this) {
