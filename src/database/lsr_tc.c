@@ -5,6 +5,7 @@
 
 //the set of all currently known nodes
 static node_t *node_set = NULL;
+static node_t *this_node = NULL;
 
 node_t *lsr_tc_create_node(mac_addr addr, struct timeval timeout) {
 	node_t *node = lsr_node_new(addr, timeout);
@@ -85,34 +86,6 @@ dessert_result_t lsr_tc_age_all(void) {
 	return DESSERT_OK;
 }
 
-typedef struct priority_queue {
-	struct priority_queue *prev, *next;
-	node_t *node;
-} priority_queue_t;
-
-node_t *priority_queue_poll(priority_queue_t **queue) {
-	if(!*queue) {
-		return NULL;
-	}
-	priority_queue_t *min_item = *queue;
-	priority_queue_t *item;
-	CDL_FOREACH(*queue, item) {
-		if(item->node->weight < min_item->node->weight) {
-			min_item = item;
-		}
-	}
-	CDL_DELETE(*queue, min_item);
-	node_t *result = min_item->node;
-	free(min_item);
-	return result;
-}
-
-void priority_queue_add(priority_queue_t **queue, node_t *node) {
-	priority_queue_t *el = malloc(sizeof(priority_queue_t));
-	el->node = node;
-	CDL_PREPEND(*queue, el);
-}
-
 dessert_result_t lsr_tc_dijkstra() {
 	if(node_set) {
 		node_t *node = NULL;
@@ -122,22 +95,30 @@ dessert_result_t lsr_tc_dijkstra() {
 		}
 	}
 	else { //initialize node_set with this node
-		node_set = lsr_tc_create_node(dessert_l25_defsrc, (struct timeval){UINT32_MAX, 999999});
+		this_node = lsr_tc_create_node(dessert_l25_defsrc, (struct timeval){UINT32_MAX, 999999});
 	}
-	node_set->weight = 0;
+	this_node->weight = 0;
 	
 	//initialize direct neighbors weights
 	lsr_nt_set_neighbor_weights();
 	
-	//queue of all unvisited nodes
-	priority_queue_t *queue = NULL;
-	for(node_t *node = node_set; node; node = node->hh.next) {
-		priority_queue_add(&queue, node);
-	}
-	node_t *current_node;
-	while((current_node = priority_queue_poll(&queue))) {
-		for(int i = 0; i < current_node->neighbor_count; ++i) {
-			edge_t *neighbor_edge = current_node->neighbors + i;
+	int node_count = HASH_COUNT(node_set);
+	node_t *node_list[node_count];
+	int i = 0;
+	for(node_t *node = node_set; node; node = node->hh.next)
+		node_list[i++] = node;
+	
+	for(i = 0; i < node_count; ++i) {
+		for(int j = i + 1; j < node_count; ++j) {
+			if(node_list[j]->weight < node_list[i]->weight) {
+				node_t *tmp = node_list[i];
+				node_list[i] = node_list[j];
+				node_list[j] = tmp;
+			}
+		}
+		node_t *current_node = node_list[i]; //unvisited node with smallest weight
+		for(int j = 0; j < current_node->neighbor_count; ++j) {
+			edge_t *neighbor_edge = current_node->neighbors + j;
 			node_t * neighbor_node = neighbor_edge->node;
 			uint32_t dist = current_node->weight + neighbor_edge->weight;
 			if(neighbor_node->weight > dist) {
