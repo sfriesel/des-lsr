@@ -7,15 +7,9 @@
 
 // exchange format to export neighbor table into TC messages
 typedef struct neighbor_info {
-	uint8_t addr[ETH_ALEN];
-	uint8_t lifetime;
-	uint8_t weight;
+	mac_addr addr;
+	uint16_t weight;
 } neighbor_info_t;
-
-struct seq_interval {
-	uint16_t start; //inclusive
-	uint16_t end; //exclusive
-};
 
 dessert_result_t lsr_db_dump_neighbor_table(neighbor_info_t **result, int *neighbor_count);
 

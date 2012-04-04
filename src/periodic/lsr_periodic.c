@@ -10,8 +10,7 @@ dessert_periodic_t *periodic_rebuild_rt;
 
 typedef struct tc_ext {
 	mac_addr addr;
-	uint8_t lifetime;
-	uint8_t weight;
+	uint16_t weight;
 } __attribute__((__packed__)) tc_ext_t;
 
 static dessert_per_result_t lsr_periodic_send_tc_with_ttl(uint8_t ttl, uint64_t seq_nr) {
@@ -40,7 +39,6 @@ static dessert_per_result_t lsr_periodic_send_tc_with_ttl(uint8_t ttl, uint64_t 
 	tc_ext_t *tc_element = (tc_ext_t*) ext->data;
 	for(int i = 0; i < neighbor_count; ++i) {
 		memcpy(tc_element[i].addr, neighbor_list[i].addr, ETH_ALEN);
-		tc_element[i].lifetime = neighbor_list[i].lifetime;
 		tc_element[i].weight = neighbor_list[i].weight;
 	}
 	free(neighbor_list);

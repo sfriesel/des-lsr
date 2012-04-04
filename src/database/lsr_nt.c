@@ -8,60 +8,28 @@
 // neighbor table; hash map of all neighboring l2 interfaces
 static neighbor_t *nt = NULL;
 
-static uint8_t timeout2lifetime(struct timeval *timeout, struct timeval *now) {
-	if(dessert_timevalcmp(timeout, now) < 0)
-		return -1;
-	uintmax_t diff = dessert_timeval2ms(timeout) - dessert_timeval2ms(now);
-	uintmax_t result = diff / tc_interval;
-	if(result > UINT8_MAX) {
-		result = UINT8_MAX;
-	}
-	return (uint8_t)result;
-}
-
 dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int * const neighbor_count) {
 	lsr_nt_age_all();
-	// circular list of edges pointing to l25 neighbor nodes
-	int out_size = 16;
+	int out_size = HASH_COUNT(nt);
 	neighbor_info_t *out = calloc(out_size, sizeof(neighbor_info_t));
 	int out_used = 0;
 	
-	
-	*neighbor_count = 0;
-	struct timeval now;
-	gettimeofday(&now, NULL);
-	
-	neighbor_t *neighbor, *tmp;
-	HASH_ITER(hh, nt, neighbor, tmp) {
-		uint8_t lifetime = timeout2lifetime(&neighbor->timeout, &now);
-		if(lifetime == 0) {
-			continue;
-		}
+	for(neighbor_t *neighbor = nt; neighbor; neighbor = neighbor->hh.next) {
 		int j;
-		bool discard = false;
 		for(j = 0; j < out_used; ++j) {
 			if(mac_equal(neighbor->node->addr, out[j].addr)) {
-				if(neighbor->weight < out[j].weight) {
-					break;
-				}
-				else {
-					discard = true;
-				}
+				if(neighbor->weight >= out[j].weight)
+					goto next_neighbor;
+				break;
 			}
 		}
-		if(discard) {
-			continue;
-		}
-		if(j >= out_used) {
-			if(out_used == out_size) {
-				out_size *= 2;
-				out = realloc(out, out_size * sizeof(*out));
-			}
+		
+		if(j == out_used)
 			out_used++;
-		}
+		
 		mac_copy(out[j].addr, neighbor->node->addr);
-		out[j].lifetime = lifetime;
 		out[j].weight = neighbor->weight;
+		next_neighbor:;
 	}
 	*neighbor_count = out_used;
 	*result = out;
@@ -76,7 +44,7 @@ struct timeval lsr_nt_calc_timeout(struct timeval now) {
 	return timeout;
 }
 
-dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint16_t seq_nr, uint8_t weight, struct timeval now) {
+dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint16_t seq_nr, uint16_t weight, struct timeval now) {
 	struct timeval timeout = lsr_nt_calc_timeout(now);
 	node_t *node = lsr_tc_get_or_create_node(neighbor_l25, timeout);
 	

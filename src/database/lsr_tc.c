@@ -114,6 +114,8 @@ dessert_result_t lsr_tc_dijkstra() {
 			}
 		}
 		node_t *current_node = node_list[i]; //unvisited node with smallest weight
+		if(current_node->weight == INFINITE_WEIGHT)
+			break; //this and all other unvisited nodes are unreachable
 		for(int j = 0; j < current_node->neighbor_count; ++j) {
 			edge_t *neighbor_edge = current_node->neighbors + j;
 			node_t * neighbor_node = neighbor_edge->node;
