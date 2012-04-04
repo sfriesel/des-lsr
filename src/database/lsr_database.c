@@ -23,23 +23,29 @@ dessert_result_t lsr_db_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, d
 	return result;
 }
 
-node_t *lsr_db_tc_update(mac_addr node_addr, uint16_t seq_nr) {
+node_t *lsr_db_tc_update(mac_addr node_addr, uint16_t seq_nr, struct timeval now) {
 	pthread_rwlock_wrlock(&db_lock);
-	node_t *result = lsr_tc_update_node(node_addr, seq_nr);
+	node_t *result = lsr_tc_update_node(node_addr, seq_nr, now);
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }
 
-dessert_result_t lsr_db_tc_neighbor_update(node_t *node, mac_addr neighbor_addr, uint8_t age, uint8_t weight) {
+dessert_result_t lsr_db_tc_update_edge(node_t *node, mac_addr neighbor_addr, uint16_t weight, struct timeval now) {
 	pthread_rwlock_wrlock(&db_lock);
-	dessert_result_t result = lsr_tc_update_node_neighbor(node, neighbor_addr, age, weight);
+	dessert_result_t result = lsr_tc_update_edge(node, neighbor_addr, weight, now);
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }
 
-bool lsr_db_broadcast_check_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
+void lsr_db_node_remove_old_edges(node_t *node, struct timeval cutoff) {
 	pthread_rwlock_wrlock(&db_lock);
-	bool result = lsr_tc_check_broadcast_seq_nr(node_addr, seq_nr);
+	lsr_node_remove_old_edges(node, cutoff);
+	pthread_rwlock_unlock(&db_lock);
+}
+
+bool lsr_db_broadcast_check_seq_nr(mac_addr node_addr, uint16_t seq_nr, struct timeval now) {
+	pthread_rwlock_wrlock(&db_lock);
+	bool result = lsr_tc_check_broadcast_seq_nr(node_addr, seq_nr, now);
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }
@@ -58,9 +64,9 @@ uint64_t lsr_db_broadcast_get_seq_nr(void) {
 	return result;
 }
 
-bool lsr_db_unicast_check_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
+bool lsr_db_unicast_check_seq_nr(mac_addr node_addr, uint16_t seq_nr, struct timeval now) {
 	pthread_rwlock_wrlock(&db_lock);
-	bool result = lsr_tc_check_unicast_seq_nr(node_addr, seq_nr);
+	bool result = lsr_tc_check_unicast_seq_nr(node_addr, seq_nr, now);
 	pthread_rwlock_unlock(&db_lock);
 	return result;
 }

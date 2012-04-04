@@ -7,8 +7,7 @@
 
 typedef struct tc_ext {
 	mac_addr addr;
-	uint8_t age;
-	uint8_t weight;
+	uint16_t weight;
 } __attribute__((__packed__)) tc_ext_t;
 
 int lsr_send_randomized(dessert_msg_t *msg) {
@@ -28,30 +27,30 @@ dessert_cb_result_t lsr_process_ttl(dessert_msg_t* msg, uint32_t len, dessert_ms
 
 dessert_cb_result_t lsr_process_tc(dessert_msg_t* msg, uint32_t len, dessert_msg_proc_t *proc, dessert_meshif_t *iface, dessert_frameid_t id) {
 	dessert_ext_t *ext;
-
 	if(!dessert_msg_getext(msg, &ext, LSR_EXT_TC, 0)) {
 		return DESSERT_MSG_KEEP;
 	}
-
+	
 	struct ether_header* l25h = dessert_msg_getl25ether(msg);
+	struct timeval now;
+	gettimeofday(&now, NULL);
 	
 	dessert_trace("TC from " MAC, EXPLODE_ARRAY6(l25h->ether_shost));
 	
 	//if tc travelled exactly one hop, also handle as hello packet
 	if(msg->u8 == 1) {
-		struct timeval now;
-		gettimeofday(&now, NULL);
 		lsr_db_nt_update(msg->l2h.ether_shost, l25h->ether_shost, iface, ntohs(msg->u16), now);
 	}
 	
-	node_t *node = lsr_db_tc_update(l25h->ether_shost, ntohs(msg->u16));
+	node_t *node = lsr_db_tc_update(l25h->ether_shost, ntohs(msg->u16), now);
 	
-	int neigh_count = (ext->len - DESSERT_EXTLEN)/sizeof(tc_ext_t);
+	const int neigh_count = (ext->len - DESSERT_EXTLEN)/sizeof(tc_ext_t);
 	tc_ext_t *tc_data = (tc_ext_t*) ext->data;
 	// add NH to RT
-	for(int i = 0; i < neigh_count; ++i) {
-		lsr_db_tc_neighbor_update(node, tc_data[i].addr, tc_data[i].age, tc_data[i].weight);
-	}
+	for(int i = 0; i < neigh_count; ++i)
+		lsr_db_tc_update_edge(node, tc_data[i].addr, tc_data[i].weight, now);
+	lsr_db_node_remove_old_edges(node, now);
+	
 	lsr_send_randomized(msg); // resend TC packet
 	
 	return DESSERT_MSG_DROP;
@@ -66,12 +65,15 @@ dessert_cb_result_t lsr_drop_errors(dessert_msg_t* msg, uint32_t len, dessert_ms
 	
 	struct ether_header* l25h = dessert_msg_getl25ether(msg);
 	
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	
 	if(proc->lflags & (DESSERT_RX_FLAG_L25_MULTICAST | DESSERT_RX_FLAG_L25_BROADCAST)) {
-		if(!lsr_db_broadcast_check_seq_nr(l25h->ether_shost, ntohs(msg->u16))) {
+		if(!lsr_db_broadcast_check_seq_nr(l25h->ether_shost, ntohs(msg->u16), now)) {
 			return DESSERT_MSG_DROP;
 		}
 	} else {
-		if(!lsr_db_unicast_check_seq_nr(l25h->ether_shost, ntohs(msg->u16))) {
+		if(!lsr_db_unicast_check_seq_nr(l25h->ether_shost, ntohs(msg->u16), now)) {
 			return DESSERT_MSG_DROP;
 		}
 	}

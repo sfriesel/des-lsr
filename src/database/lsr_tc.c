@@ -26,40 +26,35 @@ node_t *lsr_tc_get_or_create_node(mac_addr addr, struct timeval timeout) {
 	return node;
 }
 
-struct timeval lsr_tc_calc_timeout(uint8_t lifetime) {
-	struct timeval lifetime_tv;
-	dessert_ms2timeval(lifetime * tc_interval, &lifetime_tv);
+struct timeval lsr_tc_calc_timeout(struct timeval now, uint8_t lifetime) {
 	struct timeval timeout;
-	gettimeofday(&timeout, NULL);
-	dessert_timevaladd2(&timeout, &timeout, &lifetime_tv);
+	dessert_ms2timeval(lifetime * tc_interval, &timeout);
+	dessert_timevaladd2(&timeout, &timeout, &now);
 	return timeout;
 }
 
-node_t *lsr_tc_update_node(mac_addr node_addr, uint16_t seq_nr) {
-	struct timeval timeout = lsr_tc_calc_timeout(node_lifetime);
-	node_t *node = lsr_tc_get_node(node_addr);
-	if(node)
-		lsr_node_set_timeout(node, timeout);
-	else
-		lsr_tc_create_node(node_addr, timeout);
+node_t *lsr_tc_update_node(mac_addr node_addr, uint16_t seq_nr, struct timeval now) {
+	struct timeval timeout = lsr_tc_calc_timeout(now, node_lifetime);
+	node_t *node = lsr_tc_get_or_create_node(node_addr, timeout);
+	lsr_node_set_timeout(node, timeout);
 	return node;
 }
 
-dessert_result_t lsr_tc_update_node_neighbor(node_t *node, mac_addr neighbor_addr, uint8_t lifetime, uint8_t weight) {
-	struct timeval ngbr_timeout = lsr_tc_calc_timeout(lifetime);
+dessert_result_t lsr_tc_update_edge(node_t *node, mac_addr neighbor_addr, uint16_t weight, struct timeval now) {
+	struct timeval ngbr_timeout = lsr_tc_calc_timeout(now, node_lifetime);
 	node_t *neighbor = lsr_tc_get_or_create_node(neighbor_addr, ngbr_timeout);
-	lsr_node_update_neighbor(node, neighbor, ngbr_timeout, weight);
+	lsr_node_update_edge(node, neighbor, weight, now);
 	return DESSERT_OK;
 }
 
-bool lsr_tc_check_unicast_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
-	node_t *node = lsr_tc_get_or_create_node(node_addr, lsr_tc_calc_timeout(node_lifetime));
+bool lsr_tc_check_unicast_seq_nr(mac_addr node_addr, uint16_t seq_nr, struct timeval now) {
+	node_t *node = lsr_tc_get_or_create_node(node_addr, lsr_tc_calc_timeout(now, node_lifetime));
 	
 	return lsr_node_check_unicast_seq_nr(node, seq_nr);
 }
 
-bool lsr_tc_check_broadcast_seq_nr(mac_addr node_addr, uint16_t seq_nr) {
-	node_t *node = lsr_tc_get_or_create_node(node_addr, lsr_tc_calc_timeout(node_lifetime));
+bool lsr_tc_check_broadcast_seq_nr(mac_addr node_addr, uint16_t seq_nr, struct timeval now) {
+	node_t *node = lsr_tc_get_or_create_node(node_addr, lsr_tc_calc_timeout(now, node_lifetime));
 	
 	return lsr_node_check_broadcast_seq_nr(node, seq_nr);
 }

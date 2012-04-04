@@ -29,7 +29,9 @@ dessert_result_t lsr_db_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, d
  * Update that the node given by the arguments has been seen
  * @return pointer to updated node on success, NULL otherwise
  */
-node_t *lsr_db_tc_update(mac_addr node_addr, uint16_t seq_nr);
+node_t *lsr_db_tc_update(mac_addr node_addr, uint16_t seq_nr, struct timeval);
+
+void lsr_db_node_remove_old_edges(node_t *node, struct timeval cutoff);
 
 /**
  * Update that the neighbor of node given by the arguments has been seen
@@ -37,16 +39,18 @@ node_t *lsr_db_tc_update(mac_addr node_addr, uint16_t seq_nr);
  * @arg weight: the weight of the neighbor connection as supplied in the node's TC message
  * @returns: DESSERT_OK on successful update, DESSERT_ERR otherwise
  */
-dessert_result_t lsr_db_tc_neighbor_update(node_t *node, mac_addr neighbor_addr, uint8_t lifetime, uint8_t weight);
+dessert_result_t lsr_db_tc_update_edge(node_t *node, mac_addr neighbor_addr, uint16_t weight, struct timeval now);
+
+void lsr_db_node_remove_old_edges(node_t *node, struct timeval now);
 
 /**
  * returns: true if the sequence number seq_nr was not yet seen, false otherwise
  */
-bool lsr_db_unicast_check_seq_nr(mac_addr node_addr, uint16_t seq_nr);
+bool lsr_db_unicast_check_seq_nr(mac_addr node_addr, uint16_t seq_nr, struct timeval now);
 /**
  * same for broadcast sequence number
  */
-bool lsr_db_broadcast_check_seq_nr(mac_addr node_addr, uint16_t seq_nr);
+bool lsr_db_broadcast_check_seq_nr(mac_addr node_addr, uint16_t seq_nr, struct timeval now);
 
 /**
  * returns: a new broadcast sequence number for a packet to use

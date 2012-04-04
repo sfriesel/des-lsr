@@ -4,7 +4,11 @@
 #include <uthash.h>
 #include <dessert.h>
 
-#define GAP_COUNT 8
+typedef struct edge {
+	struct timeval last_update;
+	struct node   *node;
+	uint32_t       weight;
+} edge_t;
 
 typedef struct node {
 	uint64_t multicast_seq_nr;           //the highest seen multicast sequence number of this node
@@ -23,12 +27,15 @@ node_t *lsr_node_new(mac_addr addr, struct timeval timeout);
 bool lsr_node_age(node_t *this, const struct timeval *now);
 void lsr_node_delete(node_t *this);
 void lsr_node_set_timeout(node_t *this, struct timeval timeout);
-void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval timeout, uint8_t weight);
+void lsr_node_update_edge(node_t *this, node_t *neighbor, uint16_t weight, struct timeval now);
+void lsr_node_remove_old_edges(node_t *node, struct timeval cutoff);
 bool lsr_node_check_broadcast_seq_nr(node_t *node, uint16_t seq_nr);
 bool lsr_node_check_unicast_seq_nr(node_t *node, uint16_t seq_nr);
+
 char *lsr_node_to_string(node_t *this);
 const char *lsr_node_to_string_header(void);
 char *lsr_node_to_route_string(node_t *this);
 const char *lsr_node_to_route_string_header(void);
 
 #endif
+

@@ -21,23 +21,9 @@ node_t *lsr_node_new(mac_addr addr, struct timeval timeout) {
 	return this;
 }
 
-//ages the node and returns whether to delete it
+/** @return true if the node should be removed, false otherwise */
 bool lsr_node_age(node_t *this, const struct timeval *now) {
-	//remove all outdated neighbor edges
-	for(int i = 0; i < this->neighbor_count; ++i) {
-		if(dessert_timevalcmp(now, &this->neighbors[i].timeout) >= 0) {
-			dessert_trace("connection from node " MAC " to ngbr " MAC " timed out", this->addr, this->neighbors[i].node->addr);
-			this->neighbor_count--;
-			//copy the last array element into the gap
-			this->neighbors[i] = this->neighbors[this->neighbor_count];
-		}
-	}
-	// if node has no next_hop, it's not referenced
-	// as neighbor of any reachable node
-	if(dessert_timevalcmp(now, &this->timeout) >= 0 && !this->next_hop) {
-		return true;
-	}
-	return false;
+	return dessert_timevalcmp(now, &this->timeout) >= 0 && !this->next_hop;
 }
 
 void lsr_node_delete(node_t *this) {
@@ -46,7 +32,8 @@ void lsr_node_delete(node_t *this) {
 }
 
 void lsr_node_set_timeout(node_t *this, struct timeval timeout) {
-	this->timeout = timeout;
+	if(dessert_timevalcmp(&timeout, &this->timeout) > 0)
+		this->timeout = timeout;
 }
 
 static inline int get_neighbor_index(node_t *this, const mac_addr addr) {
@@ -69,7 +56,7 @@ static inline int get_unused_index(node_t *this) {
 	return this->neighbor_count;
 }
 
-void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval timeout, uint8_t weight) {
+void lsr_node_update_edge(node_t *this, node_t *neighbor, uint16_t weight, struct timeval now) {
 	if(!this->neighbors) {
 		this->neighbor_size = 2;
 		this->neighbors = calloc(this->neighbor_size, sizeof(struct edge));
@@ -83,8 +70,21 @@ void lsr_node_update_neighbor(node_t *this, node_t *neighbor, struct timeval tim
 		this->neighbors[i].node = neighbor;
 	}
 	
-	this->neighbors[i].timeout = timeout;
+	this->neighbors[i].last_update = now;
 	this->neighbors[i].weight = weight;
+}
+
+
+void lsr_node_remove_old_edges(node_t *this, struct timeval cutoff) {
+	if(!this->neighbors && this->neighbor_count)
+		return;
+	for(int i = 0; i < this->neighbor_count; ++i) {
+		if(dessert_timevalcmp(&this->neighbors[i].last_update, &cutoff) < 0) {
+			//delete this neighbor by moving the last neighbor in its place
+			this->neighbor_count--;
+			this->neighbors[i] = this->neighbors[this->neighbor_count];
+		}
+	}
 }
 
 static uint64_t guess_seq_nr(uint64_t old, uint16_t new) {

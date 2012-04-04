@@ -68,16 +68,17 @@ dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int
 	return DESSERT_OK;
 }
 
-struct timeval lsr_nt_calc_timeout(void) {
+struct timeval lsr_nt_calc_timeout(struct timeval now) {
 	uint32_t lifetime_ms = neighbor_lifetime * dessert_timeval2ms(&periodic_send_hello_tc->interval);
 	struct timeval timeout;
-	gettimeofday(&timeout, NULL);
-	dessert_timevaladd(&timeout, lifetime_ms / 1000, (lifetime_ms % 1000) * 1000);
+	dessert_ms2timeval(lifetime_ms, &timeout);
+	dessert_timevaladd2(&timeout, &timeout, &now);
 	return timeout;
 }
 
 dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint16_t seq_nr, uint8_t weight, struct timeval now) {
-	node_t *node = lsr_tc_get_or_create_node(neighbor_l25, now);
+	struct timeval timeout = lsr_nt_calc_timeout(now);
+	node_t *node = lsr_tc_get_or_create_node(neighbor_l25, timeout);
 	
 	neighbor_t *neighbor = NULL;
 	HASH_FIND(hh, nt, neighbor_l2, ETH_ALEN, neighbor);
@@ -88,7 +89,7 @@ dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dess
 		neighbor->iface = iface;
 		HASH_ADD_KEYPTR(hh, nt, neighbor->addr, ETH_ALEN, neighbor);
 	}
-	neighbor->timeout = lsr_nt_calc_timeout();
+	neighbor->timeout = timeout;
 	neighbor->weight = weight;
 	
 	return DESSERT_OK;
