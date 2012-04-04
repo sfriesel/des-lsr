@@ -87,15 +87,12 @@ dessert_result_t lsr_tc_age_all(void) {
 }
 
 dessert_result_t lsr_tc_dijkstra() {
-	if(node_set) {
-		node_t *node = NULL;
-		for(node = node_set; node; node = node->hh.next) {
-			node->weight = INFINITE_WEIGHT;
-			node->next_hop = NULL;
-		}
-	}
-	else { //initialize node_set with this node
+	if(!this_node) //initialize node_set with this node
 		this_node = lsr_tc_create_node(dessert_l25_defsrc, (struct timeval){UINT32_MAX, 999999});
+	
+	for(node_t *node = node_set; node; node = node->hh.next) {
+		node->weight = INFINITE_WEIGHT;
+		node->next_hop = NULL;
 	}
 	this_node->weight = 0;
 	
