@@ -19,7 +19,7 @@ FILE_ETC = etc/$(DAEMONNAME).conf
 FILE_INIT = etc/$(DAEMONNAME).init
 
 LIBS = dessert pthread cli pcap z
-CFLAGS += -Wall -Wextra -Wno-unused-parameter -Werror -Wfatal-errors -std=gnu99 -O2 -g -DTARGET_$(UNAME) -D_GNU_SOURCE
+CFLAGS += -Wall -Wextra -Wno-unused-parameter -Werror -Wfatal-errors -std=gnu99 -DTARGET_$(UNAME) -D_GNU_SOURCE
 LDFLAGS += $(addprefix -l,$(LIBS))
 
 all: build
