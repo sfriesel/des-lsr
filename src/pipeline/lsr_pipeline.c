@@ -35,7 +35,6 @@ dessert_cb_result_t lsr_process_tc(dessert_msg_t* msg, uint32_t len, dessert_msg
 	struct timeval now;
 	gettimeofday(&now, NULL);
 	
-	dessert_trace("TC from " MAC, EXPLODE_ARRAY6(l25h->ether_shost));
 	
 	//if tc travelled exactly one hop, also handle as hello packet
 	if(msg->u8 == 1) {
@@ -45,6 +44,7 @@ dessert_cb_result_t lsr_process_tc(dessert_msg_t* msg, uint32_t len, dessert_msg
 	node_t *node = lsr_db_tc_update(l25h->ether_shost, ntohs(msg->u16), now);
 	
 	const int neigh_count = (ext->len - DESSERT_EXTLEN)/sizeof(tc_ext_t);
+	dessert_trace("TC from " MAC " with %d ngbrs", EXPLODE_ARRAY6(l25h->ether_shost), neigh_count);
 	tc_ext_t *tc_data = (tc_ext_t*) ext->data;
 	// add NH to RT
 	for(int i = 0; i < neigh_count; ++i)
