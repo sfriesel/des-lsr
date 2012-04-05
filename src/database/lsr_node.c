@@ -65,10 +65,13 @@ void lsr_node_update_edge(node_t *this, node_t *neighbor, uint16_t weight, struc
 	int i = get_neighbor_index(this, neighbor->addr);
 	
 	if(i >= this->neighbor_count) { //addr not found, new neighbor
+		dessert_trace("new neighbor " MAC, neighbor->addr);
 		i = get_unused_index(this);
 		this->neighbor_count++;
 		this->neighbors[i].node = neighbor;
 	}
+	else
+		dessert_trace("refreshed neighbor " MAC, neighbor->addr);
 	
 	this->neighbors[i].last_update = now;
 	this->neighbors[i].weight = weight;
@@ -76,10 +79,11 @@ void lsr_node_update_edge(node_t *this, node_t *neighbor, uint16_t weight, struc
 
 
 void lsr_node_remove_old_edges(node_t *this, struct timeval cutoff) {
-	if(!this->neighbors && this->neighbor_count)
+	if(!this->neighbors || !this->neighbor_count)
 		return;
 	for(int i = 0; i < this->neighbor_count; ++i) {
 		if(dessert_timevalcmp(&this->neighbors[i].last_update, &cutoff) < 0) {
+			dessert_trace("delete neighbor " MAC, this->neighbors[i].node->addr);
 			//delete this neighbor by moving the last neighbor in its place
 			this->neighbor_count--;
 			this->neighbors[i] = this->neighbors[this->neighbor_count];
