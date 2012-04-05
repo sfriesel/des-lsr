@@ -88,7 +88,7 @@ dessert_result_t lsr_tc_age_all(void) {
 
 dessert_result_t lsr_tc_dijkstra() {
 	if(!this_node) //initialize node_set with this node
-		this_node = lsr_tc_create_node(dessert_l25_defsrc, (struct timeval){UINT32_MAX, 999999});
+		this_node = lsr_tc_create_node(dessert_l25_defsrc, (struct timeval){INT32_MAX, 999999});
 	
 	for(node_t *node = node_set; node; node = node->hh.next) {
 		node->weight = INFINITE_WEIGHT;
@@ -116,7 +116,7 @@ dessert_result_t lsr_tc_dijkstra() {
 		node_t *current_node = node_list[i]; //unvisited node with smallest weight
 		if(current_node->weight == INFINITE_WEIGHT)
 			break; //this and all other unvisited nodes are unreachable
-		dessert_trace("processing node with %d ngbrs", current_node->neighbor_count);
+		dessert_trace("processing node with %d ngbrs and weight %d", current_node->neighbor_count, current_node->weight);
 		for(int j = 0; j < current_node->neighbor_count; ++j) {
 			edge_t *neighbor_edge = current_node->neighbors + j;
 			node_t * neighbor_node = neighbor_edge->node;
