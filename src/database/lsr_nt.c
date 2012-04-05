@@ -37,7 +37,7 @@ dessert_result_t lsr_nt_dump_neighbor_table(neighbor_info_t ** const result, int
 }
 
 struct timeval lsr_nt_calc_timeout(struct timeval now) {
-	uint32_t lifetime_ms = neighbor_lifetime * dessert_timeval2ms(&periodic_send_hello_tc->interval);
+	uint32_t lifetime_ms = neighbor_lifetime * hello_interval;
 	struct timeval timeout;
 	dessert_ms2timeval(lifetime_ms, &timeout);
 	dessert_timevaladd2(&timeout, &timeout, &now);

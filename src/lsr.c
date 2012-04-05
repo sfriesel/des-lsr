@@ -7,6 +7,7 @@
 #include "pipeline/lsr_pipeline.h"
 #include "cli/lsr_cli.h"
 
+uintmax_t hello_interval = HELLO_INTERVAL;
 uintmax_t tc_ratio = TC_RATIO;
 uintmax_t tc_interval = HELLO_INTERVAL * TC_RATIO;
 uintmax_t neighbor_lifetime = NEIGHBOR_LIFETIME;

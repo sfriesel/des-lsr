@@ -23,6 +23,7 @@
 
 extern uintmax_t tc_ratio;
 extern uintmax_t tc_interval;
+extern uintmax_t hello_interval;
 extern uintmax_t neighbor_lifetime;
 extern uintmax_t node_lifetime;
 
