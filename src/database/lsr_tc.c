@@ -2,6 +2,7 @@
 #include "lsr_nt.h"
 #include "../lsr_config.h"
 #include <utlist.h>
+#include <stdio.h>
 
 //the set of all currently known nodes
 static node_t *node_set = NULL;
@@ -127,43 +128,29 @@ dessert_result_t lsr_tc_dijkstra() {
 			}
 		}
 	}
-	char *out = lsr_tc_nodeset_to_route_string(";");
-	dessert_info("%s", out);
-	free(out);
+	{
+		char *buf;
+		size_t bufSize;
+		FILE *f = open_memstream(&buf, &bufSize);
+		lsr_tc_nodeset_print_routes(f, ";");
+		fclose(f);
+		dessert_info("%s", buf);
+		free(buf);
+	}
 	return DESSERT_OK;
 }
 
-char *lsr_tc_nodeset_to_string(const char *delim) {
-	int size = 4096;
-	char *buf = malloc(size);
-	buf[0] = '\0';
-	int used = 0;
-	node_t *node, *tmp;
-	HASH_ITER(hh, node_set, node, tmp) {
-		char *line = lsr_node_to_string(node);
-		if((int)strlen(line) + (int)strlen(delim) >= size - used) {
-			buf = realloc(buf, size *= 2);
-		}
-		used += snprintf(buf + used, size - used, "%s%s", line, delim);
-		free(line);
+void lsr_tc_nodeset_print(FILE *f, const char *delim) {
+	for(node_t *node = node_set; node; node = node->hh.next) {
+		lsr_node_print(node, f);
+		fputs(delim, f);
 	}
-	return buf;
 }
 
-char *lsr_tc_nodeset_to_route_string(const char *delim) {
-	int size = 4096;
-	char *buf = malloc(size);
-	buf[0] = '\0';
-	int used = 0;
-	node_t *node, *tmp;
-	HASH_ITER(hh, node_set, node, tmp) {
-		char *line = lsr_node_to_route_string(node);
-		if((int)strlen(line) + (int)strlen(delim) >= size -used) {
-			buf = realloc(buf, size *= 2);
-		}
-		used += snprintf(buf + used, size - used, "%s%s", line, delim);
-		free(line);
+void lsr_tc_nodeset_print_routes(FILE *f, const char *delim) {
+	for(node_t *node = node_set; node; node = node->hh.next) {
+		lsr_node_print_route(node, f);
+		fputs(delim, f);
 	}
-	return buf;
 }
 

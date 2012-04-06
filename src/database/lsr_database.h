@@ -75,6 +75,4 @@ char *lsr_db_rt_to_string(void);
 
 const char *lsr_db_node_to_string_header(void);
 
-const char *lsr_db_node_to_route_string_header(void);
-
 #endif

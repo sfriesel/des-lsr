@@ -38,11 +38,9 @@ void lsr_node_set_timeout(node_t *this, struct timeval timeout) {
 
 static inline int get_neighbor_index(node_t *this, const mac_addr addr) {
 	int i;
-	for(i = 0; i < this->neighbor_count; ++i) {
-		if(mac_equal(addr, this->neighbors[i].node->addr)) {
+	for(i = 0; i < this->neighbor_count; ++i)
+		if(mac_equal(addr, this->neighbors[i].node->addr))
 			break;
-		}
-	}
 	return i;
 }
 
@@ -122,52 +120,21 @@ bool lsr_node_check_unicast_seq_nr(node_t *node, uint16_t seq_nr) {
 	return check_seq_nr(&(node->unicast_seq_nr), seq_nr);
 }
 
-char *lsr_node_to_string(node_t *this) {
-	int bufSize = 90;
-	char *buf = malloc(bufSize);
-	int l = snprintf(buf, bufSize, MAC " | %10jd.%06jd | %16jd | %16jd | %11jd",
-	                 EXPLODE_ARRAY6(this->addr),
-	                 (intmax_t)this->timeout.tv_sec,
-	                 (intmax_t)this->timeout.tv_usec,
-	                 (intmax_t)this->multicast_seq_nr,
-	                 (intmax_t)this->unicast_seq_nr,
-	                 (intmax_t)this->neighbor_count);
-	assert(l < bufSize);
-	return buf;
+const char * const lsr_node_table_header = "node l25 addr     | timeout           | multicast seq nr | unicast seq nr   | ngbr count ";
+
+void lsr_node_print(node_t *this, FILE *f) {
+	fprintf(f, MAC " | %10jd.%06jd | %16jd | %16jd | %11jd", EXPLODE_ARRAY6(this->addr), (intmax_t)this->timeout.tv_sec, (intmax_t)this->timeout.tv_usec, (intmax_t)this->multicast_seq_nr, (intmax_t)this->unicast_seq_nr, (intmax_t)this->neighbor_count);
 }
 
-const char *lsr_node_to_string_header(void) {
-	static const char *header = "node l25 addr     | timeout           | multicast seq nr | unicast seq nr   | ngbr count ";
-	return header;
-}
-
-char *lsr_node_to_route_string(node_t *this) {
-	int bufSize = 22;
-	char *buf = malloc(bufSize);
-	char *iter = buf;
-
-	iter += snprintf(buf, 10, "%02hhx%02hhx%02hhx | ", this->addr[3], this->addr[4], this->addr[5]);
-	assert(iter = buf + 9);
+void lsr_node_print_route(node_t *this, FILE *f) {
+	fprintf(f, "%02hhx%02hhx%02hhx | ", this->addr[3], this->addr[4], this->addr[5]);
 	if(this->next_hop)
-		iter += snprintf(iter, 10, "%02hhx%02hhx%02hhx | ", this->next_hop->node->addr[3], this->next_hop->node->addr[4], this->next_hop->node->addr[5]);
+		fprintf(f, "%02hhx%02hhx%02hhx | ", this->next_hop->node->addr[3], this->next_hop->node->addr[4], this->next_hop->node->addr[5]);
 	else
-		iter += snprintf(iter, 10, "<null> | ");
-	assert(iter == buf + 18);
-	if(this->next_hop) {
-		if(this-> weight <= 99)
-			iter += snprintf(iter, 4, "%3jd", (uintmax_t)this->weight);
-		else
-			iter += snprintf(iter, 4, ">99");
-	}
+		fputs("<null> | ", f);
+	if(this-> weight <= 99)
+		fprintf(f, "%3jd", (uintmax_t)this->weight);
 	else
-		iter += snprintf(iter, 4, "inf");
-	assert(iter < buf + bufSize);
-	
-	return buf;
-}
-
-const char *lsr_node_to_route_string_header(void) {
-	static const char *header = "dest   | nexthop| wgt";
-	return header;
+		fputs(">99", f);
 }
 

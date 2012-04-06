@@ -63,8 +63,8 @@ int cli_show_rt_rebuild_interval(struct cli_def *cli, char *command, char *argv[
 }
 
 int cli_show_rt(struct cli_def *cli, char *command, char *argv[], int argc) {
-	char *output = lsr_db_rt_to_string();
-	cli_print(cli, "%s\n%s", lsr_db_node_to_route_string_header(), output);
+	char *output = lsr_db_topology_to_string();
+	cli_print(cli, "%s\n%s", lsr_db_node_to_string_header(), output);
 	free(output);
 	return CLI_OK;
 }

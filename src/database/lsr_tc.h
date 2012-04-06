@@ -14,7 +14,7 @@ bool lsr_tc_check_broadcast_seq_nr(mac_addr node_addr, uint16_t seq_nr, struct t
 bool lsr_tc_check_unicast_seq_nr(mac_addr node_addr, uint16_t seq_nr, struct timeval now);
 dessert_result_t lsr_tc_age_all(void);
 dessert_result_t lsr_tc_dijkstra(void);
-char *lsr_tc_nodeset_to_string(const char *delim);
-char *lsr_tc_nodeset_to_route_string(const char *delim);
+void lsr_tc_nodeset_print(FILE *f, const char *delim);
+void lsr_tc_nodeset_print_routes(FILE *f, const char *delim);
 
 #endif
