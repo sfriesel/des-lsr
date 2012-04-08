@@ -3,6 +3,7 @@
 #include "../lsr_config.h"
 #include <utlist.h>
 #include <stdio.h>
+#include <assert.h>
 
 //the set of all currently known nodes
 static node_t *node_set = NULL;
@@ -22,9 +23,8 @@ node_t *lsr_tc_get_node(mac_addr addr) {
 
 node_t *lsr_tc_get_or_create_node(mac_addr addr, struct timeval timeout) {
 	node_t *node = lsr_tc_get_node(addr);
-	if(!node) {
+	if(!node)
 		node = lsr_tc_create_node(addr, timeout);
-	}
 	return node;
 }
 
@@ -64,12 +64,12 @@ bool lsr_tc_check_broadcast_seq_nr(mac_addr node_addr, uint16_t seq_nr, struct t
 dessert_result_t lsr_tc_get_next_hop(mac_addr dest_addr, mac_addr *next_hop, dessert_meshif_t **iface) {
 	node_t *dest = NULL;
 	HASH_FIND(hh, node_set, dest_addr, ETH_ALEN, dest);
-	if(!dest || !dest->next_hop) {
+	if(!dest || !dest->next_hop_iface) {
 		return DESSERT_ERR;
 	}
 	
-	memcpy(*next_hop, dest->next_hop->addr, ETH_ALEN);
-	*iface = dest->next_hop->iface;
+	mac_copy(*next_hop, dest->next_hop_addr);
+	*iface = dest->next_hop_iface;
 	return DESSERT_OK;
 }
 
@@ -78,7 +78,7 @@ dessert_result_t lsr_tc_age_all(void) {
 	gettimeofday(&now, NULL);
 	node_t *node, *tmp;
 	HASH_ITER(hh, node_set, node, tmp) {
-		bool dead = lsr_node_age(node, &now);
+		bool dead = lsr_node_is_dead(node, &now);
 		if(dead) {
 			HASH_DEL(node_set, node);
 			lsr_node_delete(node);
@@ -93,7 +93,7 @@ dessert_result_t lsr_tc_dijkstra() {
 	
 	for(node_t *node = node_set; node; node = node->hh.next) {
 		node->weight = INFINITE_WEIGHT;
-		node->next_hop = NULL;
+		node->next_hop_iface = NULL;
 	}
 	this_node->weight = 0;
 	
@@ -101,10 +101,12 @@ dessert_result_t lsr_tc_dijkstra() {
 	lsr_nt_set_neighbor_weights();
 	
 	int node_count = HASH_COUNT(node_set);
+	assert(node_count);
 	node_t *node_list[node_count];
 	int i = 0;
 	for(node_t *node = node_set; node; node = node->hh.next)
 		node_list[i++] = node;
+	assert(i == node_count);
 	
 	for(i = 0; i < node_count; ++i) {
 		for(int j = i + 1; j < node_count; ++j) {
@@ -124,7 +126,8 @@ dessert_result_t lsr_tc_dijkstra() {
 			uint32_t dist = current_node->weight + neighbor_edge->weight;
 			if(neighbor_node->weight > dist) {
 				neighbor_node->weight = dist;
-				neighbor_node->next_hop = current_node->next_hop;
+				mac_copy(neighbor_node->next_hop_addr, current_node->next_hop_addr);
+				neighbor_node->next_hop_iface = current_node->next_hop_iface;
 			}
 		}
 	}

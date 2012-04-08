@@ -13,7 +13,7 @@ node_t *lsr_node_new(mac_addr addr, struct timeval timeout) {
 	this->unicast_seq_nr = 0;
 	this->timeout = timeout;
 	this->neighbors = NULL;
-	this->next_hop = NULL;
+	this->next_hop_iface = NULL;
 	this->weight = INFINITE_WEIGHT;
 	mac_copy(this->addr, addr);
 	this->neighbor_size = 0;
@@ -21,9 +21,8 @@ node_t *lsr_node_new(mac_addr addr, struct timeval timeout) {
 	return this;
 }
 
-/** @return true if the node should be removed, false otherwise */
-bool lsr_node_age(node_t *this, const struct timeval *now) {
-	return dessert_timevalcmp(now, &this->timeout) >= 0 && !this->next_hop;
+bool lsr_node_is_dead(node_t *this, const struct timeval *now) {
+	return dessert_timevalcmp(now, &this->timeout) >= 0 && !this->next_hop_iface;
 }
 
 void lsr_node_delete(node_t *this) {
@@ -36,6 +35,14 @@ void lsr_node_set_timeout(node_t *this, struct timeval timeout) {
 		this->timeout = timeout;
 }
 
+void lsr_node_set_nexthop(node_t *this, mac_addr addr, dessert_meshif_t *iface, uint32_t nexthop_weight) {
+	if(this->weight > nexthop_weight) {
+		mac_copy(this->next_hop_addr, addr);
+		this->next_hop_iface = iface;
+		this->weight = nexthop_weight;
+	}
+}
+
 static inline int get_neighbor_index(node_t *this, const mac_addr addr) {
 	int i;
 	for(i = 0; i < this->neighbor_count; ++i)
@@ -46,9 +53,8 @@ static inline int get_neighbor_index(node_t *this, const mac_addr addr) {
 
 static inline int get_unused_index(node_t *this) {
 	if(this->neighbor_count >= this->neighbor_size) {
-		uint8_t old_size = this->neighbor_size;
-		this->neighbor_size *= 2;
-		assert(this->neighbor_size > old_size);
+		assert(this->neighbor_size < UINT8_MAX);
+		this->neighbor_size = this->neighbor_size < UINT8_MAX/2 ? this->neighbor_size * 2: UINT8_MAX;
 		this->neighbors = realloc(this->neighbors, sizeof(struct edge) * this->neighbor_size);
 	}
 	return this->neighbor_count;
@@ -91,25 +97,23 @@ void lsr_node_remove_old_edges(node_t *this, struct timeval cutoff) {
 
 static uint64_t guess_seq_nr(uint64_t old, uint16_t new) {
 	uint64_t guess = new;
-	if(guess >= old) {
+	if(guess >= old)
 		return guess;
-	}
+	
 	guess += ((old - guess) & ~(uint64_t)UINT16_MAX);
-	while(guess < old - min(old, SEQ_NR_THRESHOLD)) {
+	while(guess < old - min(old, SEQ_NR_THRESHOLD))
 		guess += UINT16_MAX + 1;
-	}
 	return guess;
 }
 
-static bool check_seq_nr(uint64_t *old, uint16_t seq_nr) {
+static inline bool check_seq_nr(uint64_t *old, uint16_t seq_nr) {
 	uint64_t guess = guess_seq_nr(*old, seq_nr);
 	if(guess > *old) {
 		*old = guess;
 		return true;
 	}
-	else {
+	else
 		return false;
-	}
 }
 
 bool lsr_node_check_broadcast_seq_nr(node_t *node, uint16_t seq_nr) {
@@ -128,11 +132,12 @@ void lsr_node_print(node_t *this, FILE *f) {
 
 void lsr_node_print_route(node_t *this, FILE *f) {
 	fprintf(f, "%02hhx%02hhx%02hhx | ", this->addr[3], this->addr[4], this->addr[5]);
-	if(this->next_hop)
-		fprintf(f, "%02hhx%02hhx%02hhx | ", this->next_hop->node->addr[3], this->next_hop->node->addr[4], this->next_hop->node->addr[5]);
+	uint8_t *next_hop_l25 = lsr_nt_node_addr(this->next_hop_addr, this->next_hop_iface);
+	if(next_hop_l25)
+		fprintf(f, "%02hhx%02hhx%02hhx | ", next_hop_l25[3], next_hop_l25[4], next_hop_l25[5]);
 	else
 		fputs("<null> | ", f);
-	if(this-> weight <= 99)
+	if(this->weight <= 99)
 		fprintf(f, "%3jd", (uintmax_t)this->weight);
 	else
 		fputs(">99", f);

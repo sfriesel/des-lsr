@@ -102,24 +102,25 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
-	//open config files before (possibly) daemonizing
-	config_files = malloc(sizeof(FILE *) * used);
-	int i;
-	for(i = 0; i < used; ++i) {
-		config_files[i] = fopen(config_names[i], "r");
-		if(!config_files[i]) {
-			dessert_err("could not open config file %s\n", config_names[i]);
-			exit(EXIT_FAILURE);
+	if(used) {
+		//open config files before (possibly) daemonizing
+		config_files = malloc(sizeof(FILE *) * used);
+		for(int i = 0; i < used; ++i) {
+			config_files[i] = fopen(config_names[i], "r");
+			if(!config_files[i]) {
+				dessert_err("could not open config file %s\n", config_names[i]);
+				exit(EXIT_FAILURE);
+			}
 		}
+		free(config_names);
 	}
-	free(config_names);
 	
 	dessert_init("LSR", 0x03, init_flags);
 	dessert_logcfg(logcfg_flags);
 	init_cli();
 	//dessert_cli_run();
 
-	for(i = 0; i < used; ++i) {
+	for(int i = 0; i < used; ++i) {
 		cli_file(dessert_cli, config_files[i], PRIVILEGE_PRIVILEGED, MODE_CONFIG);
 		fclose(config_files[i]);
 	}
