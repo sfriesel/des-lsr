@@ -81,6 +81,11 @@ dessert_result_t lsr_tc_age_all(void) {
 		bool dead = lsr_node_is_dead(node, &now);
 		if(dead) {
 			HASH_DEL(node_set, node);
+			//TODO this is inefficient; use better method to ensure no ngbr references exist
+			for(node_t *possible_ngbr = node_set; possible_ngbr; possible_ngbr = possible_ngbr->hh.next)
+				for(int j = 0; j < possible_ngbr->neighbor_count; ++j)
+					if(node == possible_ngbr->neighbors[j].node)
+						possible_ngbr[j] = possible_ngbr[--possible_ngbr->neighbor_count];
 			lsr_node_delete(node);
 		}
 	}
