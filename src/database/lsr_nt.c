@@ -60,7 +60,6 @@ struct timeval lsr_nt_calc_timeout(struct timeval now) {
 
 dessert_result_t lsr_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint16_t seq_nr, uint16_t weight, struct timeval now) {
 	struct timeval timeout = lsr_nt_calc_timeout(now);
-	lsr_tc_get_or_create_node(neighbor_l25, timeout);
 	
 	neighbor_t *neighbor = NULL;
 	for(int i = 0; i < nt_used; ++i)
@@ -108,9 +107,7 @@ uint8_t *lsr_nt_node_addr(mac_addr l2_addr, dessert_meshif_t *iface) {
  */
 dessert_result_t lsr_nt_set_neighbor_weights(void) {
 	for(int i = 0; i < nt_used; ++i) {
-		node_t *node = lsr_tc_get_node(nt[i].node_addr);
-		if(node)
-			lsr_node_set_nexthop(node, nt[i].addr, nt[i].iface, nt[i].weight);
+		lsr_tc_set_next_hop(nt[i].node_addr, nt[i].addr, nt[i].iface, nt[i].weight);
 	}
 	return DESSERT_OK;
 }

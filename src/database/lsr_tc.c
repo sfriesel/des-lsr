@@ -1,5 +1,6 @@
 #include "lsr_tc.h"
 #include "lsr_nt.h"
+#include "lsr_node.h"
 #include "../lsr_config.h"
 #include <utlist.h>
 #include <stdio.h>
@@ -74,6 +75,15 @@ dessert_result_t lsr_tc_get_next_hop(mac_addr dest_addr, mac_addr *next_hop, des
 	mac_copy(*next_hop, dest->next_hop_addr);
 	*iface = dest->next_hop_iface;
 	return DESSERT_OK;
+}
+
+void lsr_tc_set_next_hop(mac_addr l25, mac_addr l2, dessert_meshif_t *iface, uint32_t weight) {
+	node_t *ngbr = lsr_tc_get_node(l25);
+	if(!ngbr) {
+		dessert_warn("ignoring next hop " MAC " because node " MAC " is not in node_set", EXPLODE_ARRAY6(l2), EXPLODE_ARRAY6(l25));
+		return;
+	}
+	lsr_node_set_nexthop(ngbr, l2, iface, weight);
 }
 
 dessert_result_t lsr_tc_age_all(void) {

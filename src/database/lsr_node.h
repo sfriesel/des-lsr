@@ -29,14 +29,13 @@ bool lsr_node_is_dead(node_t *this, const struct timeval *now);
 void lsr_node_delete(node_t *this);
 void lsr_node_set_timeout(node_t *this, struct timeval timeout);
 struct neighbor;
-void lsr_node_set_nexthop(node_t *this, mac_addr addr, dessert_meshif_t *iface, uint32_t nexthop_weight);
+void lsr_node_set_nexthop(node_t *this, mac_addr nexthop_addr, dessert_meshif_t *iface, uint32_t nexthop_weight);
 void lsr_node_update_edge(node_t *this, node_t *neighbor, uint16_t weight, struct timeval now);
 void lsr_node_remove_old_edges(node_t *node, struct timeval cutoff);
 bool lsr_node_check_broadcast_seq_nr(node_t *node, uint16_t seq_nr);
 bool lsr_node_check_unicast_seq_nr(node_t *node, uint16_t seq_nr);
 
 void lsr_node_print(node_t *this, FILE *f);
-extern const char * const lsr_node_table_header;
 void lsr_node_print_route(node_t *this, FILE *f);
 
 #endif
