@@ -6,7 +6,7 @@
 #include "lsr_database.h"
 
 dessert_result_t lsr_tc_get_next_hop(mac_addr dest_addr, mac_addr *next_hop, dessert_meshif_t **iface);
-node_t *lsr_tc_update_node(mac_addr node_addr, uint16_t seq_nr, struct timeval now);
+void lsr_tc_update(mac_addr node_addr, uint16_t seq_nr, neighbor_info_t neighbor_infos[], int count, struct timeval now);
 dessert_result_t lsr_tc_update_edge(node_t *node, mac_addr neighbor_addr, uint16_t weight, struct timeval now);
 node_t *lsr_tc_get_node(mac_addr node_addr);
 node_t *lsr_tc_get_or_create_node(mac_addr addr, struct timeval timout);

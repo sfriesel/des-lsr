@@ -1,7 +1,6 @@
 #ifndef LSR_DATABASE
 #define LSR_DATABASE
 #include <dessert.h>
-#include "lsr_node.h"
 
 #define INFINITE_WEIGHT UINT32_MAX
 
@@ -20,22 +19,10 @@ dessert_result_t lsr_db_dump_neighbor_table(neighbor_info_t **result, int *neigh
 dessert_result_t lsr_db_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, dessert_meshif_t *iface, uint16_t seq_nr, struct timeval receive_time);
 
 /**
- * Update that the node given by the arguments has been seen
+ * Update that the node given by the arguments has been seen and set its neighbors
  * @return pointer to updated node on success, NULL otherwise
  */
-node_t *lsr_db_tc_update(mac_addr node_addr, uint16_t seq_nr, struct timeval);
-
-void lsr_db_node_remove_old_edges(node_t *node, struct timeval cutoff);
-
-/**
- * Update that the neighbor of node given by the arguments has been seen
- * @arg lifetime: the remaining lifetime of the neighbor connection as supplied in the node's TC message
- * @arg weight: the weight of the neighbor connection as supplied in the node's TC message
- * @returns: DESSERT_OK on successful update, DESSERT_ERR otherwise
- */
-dessert_result_t lsr_db_tc_update_edge(node_t *node, mac_addr neighbor_addr, uint16_t weight, struct timeval now);
-
-void lsr_db_node_remove_old_edges(node_t *node, struct timeval now);
+void lsr_db_tc_update(mac_addr node_addr, uint16_t seq_nr, neighbor_info_t neighbor_infos[], int count, struct timeval);
 
 /**
  * returns: true if the sequence number seq_nr was not yet seen, false otherwise

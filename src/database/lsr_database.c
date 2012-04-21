@@ -23,11 +23,10 @@ dessert_result_t lsr_db_nt_update(mac_addr neighbor_l2, mac_addr neighbor_l25, d
 	return result;
 }
 
-node_t *lsr_db_tc_update(mac_addr node_addr, uint16_t seq_nr, struct timeval now) {
+void lsr_db_tc_update(mac_addr node_addr, uint16_t seq_nr, neighbor_info_t neighbor_infos[], int count, struct timeval now) {
 	pthread_rwlock_wrlock(&db_lock);
-	node_t *result = lsr_tc_update_node(node_addr, seq_nr, now);
+	lsr_tc_update(node_addr, seq_nr, neighbor_infos, count, now);
 	pthread_rwlock_unlock(&db_lock);
-	return result;
 }
 
 dessert_result_t lsr_db_tc_update_edge(node_t *node, mac_addr neighbor_addr, uint16_t weight, struct timeval now) {
