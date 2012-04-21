@@ -10,26 +10,26 @@
 static node_t *node_set = NULL;
 static node_t *this_node = NULL;
 
-node_t *lsr_tc_create_node(mac_addr addr, struct timeval timeout) {
+static node_t *lsr_tc_create_node(mac_addr addr, struct timeval timeout) {
 	node_t *node = lsr_node_new(addr, timeout);
 	HASH_ADD_KEYPTR(hh, node_set, node->addr, ETH_ALEN, node);
 	return node;
 }
 
-node_t *lsr_tc_get_node(mac_addr addr) {
+static node_t *lsr_tc_get_node(mac_addr addr) {
 	node_t *node = NULL;
 	HASH_FIND(hh, node_set, addr, ETH_ALEN, node);
 	return node;
 }
 
-node_t *lsr_tc_get_or_create_node(mac_addr addr, struct timeval timeout) {
+static node_t *lsr_tc_get_or_create_node(mac_addr addr, struct timeval timeout) {
 	node_t *node = lsr_tc_get_node(addr);
 	if(!node)
 		node = lsr_tc_create_node(addr, timeout);
 	return node;
 }
 
-struct timeval lsr_tc_calc_timeout(struct timeval now, uint8_t lifetime) {
+static struct timeval lsr_tc_calc_timeout(struct timeval now, uint8_t lifetime) {
 	struct timeval timeout;
 	dessert_ms2timeval(lifetime * tc_interval, &timeout);
 	dessert_timevaladd2(&timeout, &timeout, &now);
@@ -105,7 +105,7 @@ dessert_result_t lsr_tc_age_all(void) {
 	return DESSERT_OK;
 }
 
-dessert_result_t lsr_tc_dijkstra() {
+dessert_result_t lsr_tc_dijkstra(void) {
 	if(!this_node) //initialize node_set with this node
 		this_node = lsr_tc_create_node(dessert_l25_defsrc, (struct timeval){INT32_MAX, 999999});
 	
