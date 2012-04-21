@@ -9,7 +9,7 @@ dessert_result_t lsr_tc_get_next_hop(mac_addr dest_addr, mac_addr *next_hop, des
 void lsr_tc_update(mac_addr node_addr, uint16_t seq_nr, neighbor_info_t neighbor_infos[], int count, struct timeval now);
 dessert_result_t lsr_tc_update_edge(node_t *node, mac_addr neighbor_addr, uint16_t weight, struct timeval now);
 node_t *lsr_tc_get_node(mac_addr node_addr);
-node_t *lsr_tc_get_or_create_node(mac_addr addr, struct timeval timout);
+node_t *lsr_tc_get_or_create_node(mac_addr addr, struct timeval timeout);
 bool lsr_tc_check_broadcast_seq_nr(mac_addr node_addr, uint16_t seq_nr, struct timeval now);
 bool lsr_tc_check_unicast_seq_nr(mac_addr node_addr, uint16_t seq_nr, struct timeval now);
 void lsr_tc_delete_node(node_t *node);
