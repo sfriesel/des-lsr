@@ -35,6 +35,13 @@ struct timeval lsr_tc_calc_timeout(struct timeval now, uint8_t lifetime) {
 	return timeout;
 }
 
+static dessert_result_t lsr_tc_update_edge(node_t *node, mac_addr neighbor_addr, uint16_t weight, struct timeval now) {
+	struct timeval ngbr_timeout = lsr_tc_calc_timeout(now, node_lifetime);
+	node_t *neighbor = lsr_tc_get_or_create_node(neighbor_addr, ngbr_timeout);
+	lsr_node_update_edge(node, neighbor, weight, now);
+	return DESSERT_OK;
+}
+
 void lsr_tc_update(mac_addr node_addr, uint16_t seq_nr, neighbor_info_t neighbor_infos[], int count, struct timeval now) {
 	struct timeval timeout = lsr_tc_calc_timeout(now, node_lifetime);
 	node_t *node = lsr_tc_get_or_create_node(node_addr, timeout);
@@ -43,13 +50,6 @@ void lsr_tc_update(mac_addr node_addr, uint16_t seq_nr, neighbor_info_t neighbor
 		lsr_tc_update_edge(node, neighbor_infos[i].addr, neighbor_infos[i].weight, now);
 	}
 	lsr_node_remove_old_edges(node, now);
-}
-
-dessert_result_t lsr_tc_update_edge(node_t *node, mac_addr neighbor_addr, uint16_t weight, struct timeval now) {
-	struct timeval ngbr_timeout = lsr_tc_calc_timeout(now, node_lifetime);
-	node_t *neighbor = lsr_tc_get_or_create_node(neighbor_addr, ngbr_timeout);
-	lsr_node_update_edge(node, neighbor, weight, now);
-	return DESSERT_OK;
 }
 
 bool lsr_tc_check_unicast_seq_nr(mac_addr node_addr, uint16_t seq_nr, struct timeval now) {

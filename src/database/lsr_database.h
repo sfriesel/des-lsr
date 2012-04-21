@@ -50,12 +50,6 @@ dessert_result_t lsr_db_get_next_hop(mac_addr dest_addr, mac_addr *next_hop, des
  */
 dessert_result_t lsr_db_rt_regenerate(void);
 
-/**
- * remove all neighbor entries that have not been refreshed for a certain time (defined in lsr_config.h)
- */
-dessert_result_t lsr_db_nt_age_all(void);
-dessert_result_t lsr_db_tc_age_all(void);
-
 char *lsr_db_topology_to_string(void);
 
 char *lsr_db_rt_to_string(void);
