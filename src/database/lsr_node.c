@@ -2,6 +2,7 @@
 #include "lsr_tc.h"
 #include "lsr_database.h"
 #include "lsr_nt.h"
+#include "../lsr_config.h"
 
 #include <assert.h>
 
@@ -132,7 +133,7 @@ void lsr_node_print(node_t *this, FILE *f) {
 
 void lsr_node_print_route(node_t *this, FILE *f) {
 	struct timeval now;
-	gettimeofday(&now);
+	gettimeofday(&now, NULL);
 	fprintf(f, "%02hhx%02hhx%02hhx\t", this->addr[3], this->addr[4], this->addr[5]);
 	uint8_t *next_hop_l25 = lsr_nt_node_addr(this->next_hop_addr, this->next_hop_iface);
 	if(next_hop_l25)
@@ -143,8 +144,9 @@ void lsr_node_print_route(node_t *this, FILE *f) {
 		fprintf(f, "%3jd\t", (uintmax_t)this->weight);
 	else
 		fputs(">99\t", f);
-	intmax_t age_ms = (now.tv_sec - this->last_update.tv_sec) * 1000;
-	age_ms += (now.tv_usec - this->last_update.tv_usec) / 1000;
+	intmax_t age_ms = dessert_timeval2ms(&now);
+	age_ms += node_lifetime * tc_interval;
+	age_ms -= dessert_timeval2ms(&this->timeout);
 	intmax_t age_intervals = age_ms / tc_interval;
 	fprintf(f, "%jd", age_intervals);
 }
