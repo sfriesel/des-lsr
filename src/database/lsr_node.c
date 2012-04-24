@@ -131,15 +131,21 @@ void lsr_node_print(node_t *this, FILE *f) {
 }
 
 void lsr_node_print_route(node_t *this, FILE *f) {
-	fprintf(f, "%02hhx%02hhx%02hhx | ", this->addr[3], this->addr[4], this->addr[5]);
+	struct timeval now;
+	gettimeofday(&now);
+	fprintf(f, "%02hhx%02hhx%02hhx\t", this->addr[3], this->addr[4], this->addr[5]);
 	uint8_t *next_hop_l25 = lsr_nt_node_addr(this->next_hop_addr, this->next_hop_iface);
 	if(next_hop_l25)
-		fprintf(f, "%02hhx%02hhx%02hhx | ", next_hop_l25[3], next_hop_l25[4], next_hop_l25[5]);
+		fprintf(f, "%02hhx%02hhx%02hhx\t", next_hop_l25[3], next_hop_l25[4], next_hop_l25[5]);
 	else
-		fputs("<null> | ", f);
+		fputs("<null>\t", f);
 	if(this->weight <= 99)
-		fprintf(f, "%3jd", (uintmax_t)this->weight);
+		fprintf(f, "%3jd\t", (uintmax_t)this->weight);
 	else
-		fputs(">99", f);
+		fputs(">99\t", f);
+	intmax_t age_ms = (now.tv_sec - this->last_update.tv_sec) * 1000;
+	age_ms += (now.tv_usec - this->last_update.tv_usec) / 1000;
+	intmax_t age_intervals = age_ms / tc_interval;
+	fprintf(f, "%jd", age_intervals);
 }
 
