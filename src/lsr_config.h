@@ -6,7 +6,7 @@
 #define LSR_EXT_TC DESSERT_EXT_USER
 
 // milliseconds
-#define HELLO_INTERVAL           4000
+#define HELLO_INTERVAL           2500
 #define RT_REBUILD_INTERVAL      1000
 
 //every n-th HELLO is turned into a TC (1 = always TC; 2=TC HELLO TC HELLO... etc.)
@@ -14,7 +14,7 @@
 
 //decrements once per aging interval
 //in multiples of HELLO_INTERVAL
-#define NEIGHBOR_LIFETIME   5
+#define NEIGHBOR_LIFETIME   7
 //in multiples of TC_RATIO * HELLO_INTERVAL = TC-interval
 #define NODE_LIFETIME       32
 #define DEFAULT_WEIGHT      1
